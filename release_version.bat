@@ -1,5 +1,5 @@
 @echo off
-setlocal
+setlocal EnableDelayedExpansion
 cd /d "%~dp0"
 
 where git >nul 2>nul
@@ -48,15 +48,15 @@ where gh >nul 2>nul
 if not errorlevel 1 (
   set LATEST_JAR=
   for %%J in (releases\latest\*.jar) do set LATEST_JAR=%%~fJ
-  if "%LATEST_JAR%"=="" (
+  if "!LATEST_JAR!"=="" (
     echo No latest jar found in releases\latest.
     exit /b 1
   )
   gh release view "v%NEW_VERSION%" >nul 2>nul
   if errorlevel 1 (
-    gh release create "v%NEW_VERSION%" "%LATEST_JAR%" --title "ZenithClient v%NEW_VERSION%" --notes "ZenithClient v%NEW_VERSION% build."
+    gh release create "v%NEW_VERSION%" "!LATEST_JAR!" --title "ZenithClient v%NEW_VERSION%" --notes "ZenithClient v%NEW_VERSION% build."
   ) else (
-    gh release upload "v%NEW_VERSION%" "%LATEST_JAR%" --clobber
+    gh release upload "v%NEW_VERSION%" "!LATEST_JAR!" --clobber
   )
 )
 
