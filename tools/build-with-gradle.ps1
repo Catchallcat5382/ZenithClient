@@ -291,6 +291,10 @@ if (-not $targets) {
     throw "No matching Minecraft build target for '$MinecraftSelection'. Available: $available"
 }
 
+Write-Host "Build selection: $MinecraftSelection"
+Write-Host "Minecraft targets: $(($targets | ForEach-Object { $_.minecraft_version }) -join ', ')"
+Write-Host ''
+
 $releasesDir = Join-Path $projectRoot 'releases'
 $versionDir = Join-Path $releasesDir "v$modVersion"
 $latestDir = Join-Path $releasesDir 'latest'
@@ -301,17 +305,27 @@ foreach ($dir in @($versionDir, $latestDir, $minecraftVersionsDir, $logsDir)) {
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
 }
 
-Get-ChildItem $latestDir -Filter '*.jar' -Force -ErrorAction SilentlyContinue | Remove-Item -Force
+if ($MinecraftSelection -eq 'all') {
+    Write-Host "Refreshing all jars in releases/latest."
+    Get-ChildItem $latestDir -Filter '*.jar' -Force -ErrorAction SilentlyContinue | Remove-Item -Force
+}
 
 $successful = New-Object System.Collections.Generic.List[string]
 $failed = New-Object System.Collections.Generic.List[string]
+$targetCount = @($targets).Count
+$targetNumber = 0
 
 Push-Location $projectRoot
 try {
     foreach ($target in $targets) {
+        $targetNumber++
         $mc = $target.minecraft_version
         Write-Host ''
-        Write-Host "=== Building ZenithClient v$modVersion for Minecraft $mc ==="
+        Write-Host "=== [$targetNumber/$targetCount] Building ZenithClient v$modVersion for Minecraft $mc ==="
+        Write-Host "Fabric API: $($target.fabric_api_version)"
+        Write-Host "Loader: $($target.loader_version)"
+        Write-Host "Loom: $($target.loom_version)"
+        Write-Host "Plugin: $($target.loom_plugin_id)"
 
         $targetProperties = $originalProperties
         $targetProperties = Set-PropertyValue -Lines $targetProperties -Name 'minecraft_version' -Value $target.minecraft_version
@@ -330,6 +344,8 @@ try {
         }
 
         $logPath = Join-Path $logsDir "mc-$mc.log"
+        Write-Host "Gradle log: $logPath"
+        Write-Host "Running Gradle clean build..."
         & cmd.exe /c "`"$gradleExe`" clean build --no-daemon > `"$logPath`" 2>&1"
         $exitCode = $LASTEXITCODE
 
@@ -359,9 +375,16 @@ try {
         }
 
         foreach ($jar in $jars) {
-            Copy-Item $jar.FullName (Join-Path $mcVersionDir $jar.Name) -Force
-            Copy-Item $jar.FullName (Join-Path $releaseMcDir $jar.Name) -Force
-            Copy-Item $jar.FullName (Join-Path $latestDir $jar.Name) -Force
+            $mcJarPath = Join-Path $mcVersionDir $jar.Name
+            $releaseJarPath = Join-Path $releaseMcDir $jar.Name
+            $latestJarPath = Join-Path $latestDir $jar.Name
+            Get-ChildItem $latestDir -Filter "*-mc$mc.jar" -Force -ErrorAction SilentlyContinue | Remove-Item -Force
+            Copy-Item $jar.FullName $mcJarPath -Force
+            Copy-Item $jar.FullName $releaseJarPath -Force
+            Copy-Item $jar.FullName $latestJarPath -Force
+            Write-Host "Created: $mcJarPath"
+            Write-Host "Release copy: $releaseJarPath"
+            Write-Host "Latest copy: $latestJarPath"
         }
 
         $successful.Add($mc)

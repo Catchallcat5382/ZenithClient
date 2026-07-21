@@ -47,12 +47,12 @@ Right-click a module card to open its settings. Numeric settings support both dr
 ## Build
 
 1. Install JDK 25.
-2. Run `build.bat`, then type `all` for every supported version or a specific version such as `1.20.1`.
+2. Run `build.bat`, choose the mod version to build, then type `all` for every supported Minecraft version or a specific version such as `1.20.1`.
 3. The newest jars are copied to `releases/latest/`.
 4. Versioned jars are copied to `releases/v<version>/<minecraft-version>/`.
 5. The current jar for each Minecraft version is mirrored into `minecraft_versions/<minecraft-version>/`.
 
-`build.bat` is the recommended build selector. Type `all` to build 26.2, 26.1.2, 26.1.1, 26.1, 1.21.11, 1.21.10, 1.21.9, 1.21.8, 1.21.7, 1.21.6, 1.21.5, 1.21.4, 1.21.1, 1.20.6, 1.20.5, 1.20.4, and 1.20.1. You can also type one version, or a comma-list like `26.2,1.20.1`.
+`build.bat` is the recommended build selector. It shows the current mod version, suggests the next version, and lets you press Enter to keep the current version or type a new one. Type `all` to build 26.2, 26.1.2, 26.1.1, 26.1, 1.21.11, 1.21.10, 1.21.9, 1.21.8, 1.21.7, 1.21.6, 1.21.5, 1.21.4, 1.21.1, 1.20.6, 1.20.5, 1.20.4, and 1.20.1. You can also type one version, or a comma-list like `26.2,1.20.1`.
 
 ## Git and Releases
 
