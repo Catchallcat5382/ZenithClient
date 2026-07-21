@@ -13,7 +13,7 @@ import java.util.List;
 
 /** Custom-drawn per-module settings screen. Right-click a module card to open it. */
 public final class ModuleSettingsScreen extends Screen {
-    public enum Type { PLAYER, ENTITY, BLOCKS, TRAJECTORY, XRAY, FLIGHT, AUTO_SPRINT, NO_SLOW, NO_STUN, NO_FALL, CRITICALS, AIR_JUMP, FULLBRIGHT, FPS, COORDINATES }
+    public enum Type { PLAYER, ENTITY, ITEM, PROJECTILE, BLOCKS, TRAJECTORY, XRAY, FLIGHT, AUTO_SPRINT, NO_SLOW, NO_STUN, NO_FALL, CRITICALS, AUTO_TOTEM, AIR_JUMP, FULLBRIGHT, FPS, COORDINATES }
     private enum Action { KEYBIND, OPTION, BACK }
     private record Hit(Action action, int index, int x, int y, int w, int h) {
         boolean contains(double mx, double my) { return mx >= x && mx < x + w && my >= y && my < y + h; }
@@ -282,6 +282,7 @@ public final class ModuleSettingsScreen extends Screen {
         return switch (type) {
             case PLAYER -> switch (index) { case 4 -> new Numeric(0, 100, 1, true); case 5 -> new Numeric(1, 10, 1, true); case 6 -> new Numeric(8, 256, 1, true); default -> null; };
             case ENTITY -> switch (index) { case 6 -> new Numeric(0, 100, 1, true); case 7 -> new Numeric(1, 10, 1, true); case 8 -> new Numeric(8, 256, 1, true); default -> null; };
+            case ITEM, PROJECTILE -> switch (index) { case 2 -> new Numeric(8, 256, 1, true); default -> null; };
             case BLOCKS -> switch (index) { case 1 -> new Numeric(4, 32, 1, true); case 3 -> new Numeric(0, 100, 1, true); default -> null; };
             case TRAJECTORY -> switch (index) { case 0 -> new Numeric(1, 12, 1, true); case 2 -> new Numeric(1, 6, 1, true); case 3 -> new Numeric(0, 8, 0.05, false); default -> null; };
             case XRAY -> switch (index) { case 1 -> new Numeric(0, 255, 1, true); default -> null; };
@@ -294,6 +295,7 @@ public final class ModuleSettingsScreen extends Screen {
         return switch (type) {
             case PLAYER -> switch (index) { case 4 -> config.playerFillOpacity; case 5 -> config.playerOutlineThickness; case 6 -> config.entityRange; default -> 0; };
             case ENTITY -> switch (index) { case 6 -> config.entityFillOpacity; case 7 -> config.entityOutlineThickness; case 8 -> config.entityRange; default -> 0; };
+            case ITEM, PROJECTILE -> index == 2 ? config.entityRange : 0;
             case BLOCKS -> switch (index) { case 1 -> config.blockRadius; case 3 -> config.blockFillOpacity; default -> 0; };
             case TRAJECTORY -> switch (index) { case 0 -> config.lineDensity; case 2 -> config.trajectoryThickness; case 3 -> config.trajectoryStartDistance; default -> 0; };
             case XRAY -> index == 1 ? config.xrayOpacity : 0;
@@ -311,6 +313,7 @@ public final class ModuleSettingsScreen extends Screen {
         switch (type) {
             case PLAYER -> { if (index == 4) config.playerFillOpacity = (int) value; else if (index == 5) config.playerOutlineThickness = (int) value; else if (index == 6) config.entityRange = (int) value; }
             case ENTITY -> { if (index == 6) config.entityFillOpacity = (int) value; else if (index == 7) config.entityOutlineThickness = (int) value; else if (index == 8) config.entityRange = (int) value; }
+            case ITEM, PROJECTILE -> { if (index == 2) config.entityRange = (int) value; }
             case BLOCKS -> { if (index == 1) config.blockRadius = (int) value; else if (index == 3) config.blockFillOpacity = (int) value; }
             case TRAJECTORY -> { if (index == 0) config.lineDensity = (int) value; else if (index == 2) config.trajectoryThickness = (int) value; else if (index == 3) config.trajectoryStartDistance = value; }
             case XRAY -> { if (index == 1) config.xrayOpacity = (int) value; }
@@ -324,6 +327,8 @@ public final class ModuleSettingsScreen extends Screen {
         switch (type) {
             case PLAYER -> { rows.add(row("ESP", onOff(config.playerEsp))); rows.add(row("Shape", config.playerEspShape.displayName())); rows.add(row("Outline color", colorName(config.playerOutlineColor))); rows.add(row("Fill color", colorName(config.playerFillColor))); rows.add(row("Fill opacity", config.playerFillOpacity + "%")); rows.add(row("Outline thickness", Integer.toString(config.playerOutlineThickness))); rows.add(row("Range", config.entityRange + " blocks")); rows.add(row("Tracers", onOff(config.playerTracers))); rows.add(row("Name tags", onOff(config.playerNameTags))); }
             case ENTITY -> { rows.add(row("Target group", config.entityHighlightMode.displayName())); rows.add(row("Shape", config.entityEspShape.displayName())); rows.add(row("Outline", onOff(config.entityOutline))); rows.add(row("Fill / chams", onOff(config.entityFill))); rows.add(row("Outline color", colorName(config.entityOutlineColor))); rows.add(row("Fill color", colorName(config.entityFillColor))); rows.add(row("Fill opacity", config.entityFillOpacity + "%")); rows.add(row("Outline thickness", Integer.toString(config.entityOutlineThickness))); rows.add(row("Range", config.entityRange + " blocks")); rows.add(row("Tracers", onOff(config.entityTracers))); rows.add(row("Name tags", onOff(config.entityNameTags))); }
+            case ITEM -> { rows.add(row("Item ESP", onOff(config.itemEsp))); rows.add(row("Color", colorName(config.itemEspColor))); rows.add(row("Range", config.entityRange + " blocks")); rows.add(row("Tracers", onOff(config.itemTracers))); }
+            case PROJECTILE -> { rows.add(row("Projectile ESP", onOff(config.projectileEsp))); rows.add(row("Color", colorName(config.projectileEspColor))); rows.add(row("Range", config.entityRange + " blocks")); rows.add(row("Tracers", onOff(config.projectileTracers))); }
             case BLOCKS -> { rows.add(row("Block type", config.blockHighlightMode.displayName())); rows.add(row("Search radius", config.blockRadius + " blocks")); rows.add(row("Outline color", colorName(config.blockOutlineColor))); rows.add(row("Fill opacity", config.blockFillOpacity + "%")); }
             case TRAJECTORY -> { rows.add(row("Simulation quality", Integer.toString(config.lineDensity))); rows.add(row("Line color", colorName(config.trajectoryColor))); rows.add(row("Thickness", Integer.toString(config.trajectoryThickness))); rows.add(row("Start distance", trim(config.trajectoryStartDistance))); }
             case XRAY -> { rows.add(row("Visible blocks", config.xrayMode.displayName())); rows.add(row("Hidden-block opacity", config.xrayOpacity + " / 255")); }
@@ -336,7 +341,7 @@ public final class ModuleSettingsScreen extends Screen {
 
     private int baseOptionCount() {
         return switch (type) {
-            case PLAYER -> 9; case ENTITY -> 11; case BLOCKS -> 4; case TRAJECTORY -> 4;
+            case PLAYER -> 9; case ENTITY -> 11; case ITEM, PROJECTILE -> 4; case BLOCKS -> 4; case TRAJECTORY -> 4;
             case XRAY -> 2; case FLIGHT -> 3; default -> 0;
         };
     }
@@ -345,6 +350,8 @@ public final class ModuleSettingsScreen extends Screen {
         switch (type) {
             case PLAYER -> { if (index == 0) config.playerEsp = !config.playerEsp; else if (index == 1) config.playerEspShape = direction > 0 ? config.playerEspShape.next() : previous(config.playerEspShape); else if (index == 2) config.playerOutlineColor = cycleColor(config.playerOutlineColor, direction); else if (index == 3) config.playerFillColor = cycleColor(config.playerFillColor, direction); else if (index == 7) config.playerTracers = !config.playerTracers; else if (index == 8) config.playerNameTags = !config.playerNameTags; }
             case ENTITY -> { if (index == 0) config.entityHighlightMode = direction > 0 ? config.entityHighlightMode.next() : previous(config.entityHighlightMode); else if (index == 1) config.entityEspShape = direction > 0 ? config.entityEspShape.next() : previous(config.entityEspShape); else if (index == 2) config.entityOutline = !config.entityOutline; else if (index == 3) config.entityFill = !config.entityFill; else if (index == 4) config.entityOutlineColor = cycleColor(config.entityOutlineColor, direction); else if (index == 5) config.entityFillColor = cycleColor(config.entityFillColor, direction); else if (index == 9) config.entityTracers = !config.entityTracers; else if (index == 10) config.entityNameTags = !config.entityNameTags; }
+            case ITEM -> { if (index == 0) config.itemEsp = !config.itemEsp; else if (index == 1) config.itemEspColor = cycleColor(config.itemEspColor, direction); else if (index == 3) config.itemTracers = !config.itemTracers; }
+            case PROJECTILE -> { if (index == 0) config.projectileEsp = !config.projectileEsp; else if (index == 1) config.projectileEspColor = cycleColor(config.projectileEspColor, direction); else if (index == 3) config.projectileTracers = !config.projectileTracers; }
             case BLOCKS -> { if (index == 0) config.blockHighlightMode = direction > 0 ? config.blockHighlightMode.next() : previous(config.blockHighlightMode); else if (index == 2) config.blockOutlineColor = cycleColor(config.blockOutlineColor, direction); }
             case TRAJECTORY -> { if (index == 1) config.trajectoryColor = cycleColor(config.trajectoryColor, direction); }
             case XRAY -> { if (index == 0) config.xrayMode = direction > 0 ? config.xrayMode.next() : previous(config.xrayMode); }
@@ -352,11 +359,11 @@ public final class ModuleSettingsScreen extends Screen {
         }
     }
 
-    private int getKeybind() { return switch (type) { case PLAYER -> config.playerEspKey; case ENTITY -> config.entityHighlightsKey; case BLOCKS -> config.blockHighlightsKey; case TRAJECTORY -> config.trajectoryPreviewKey; case XRAY -> config.xrayKey; case FLIGHT -> config.flightKey; case AUTO_SPRINT -> config.autoSprintKey; case NO_SLOW -> config.noSlowKey; case NO_STUN -> config.noStunKey; case NO_FALL -> config.noFallKey; case CRITICALS -> config.criticalsKey; case AIR_JUMP -> config.airJumpKey; case FULLBRIGHT -> config.fullbrightKey; case FPS -> config.showFpsKey; case COORDINATES -> config.showCoordinatesKey; }; }
-    private void setKeybind(int key) { switch (type) { case PLAYER -> config.playerEspKey = key; case ENTITY -> config.entityHighlightsKey = key; case BLOCKS -> config.blockHighlightsKey = key; case TRAJECTORY -> config.trajectoryPreviewKey = key; case XRAY -> config.xrayKey = key; case FLIGHT -> config.flightKey = key; case AUTO_SPRINT -> config.autoSprintKey = key; case NO_SLOW -> config.noSlowKey = key; case NO_STUN -> config.noStunKey = key; case NO_FALL -> config.noFallKey = key; case CRITICALS -> config.criticalsKey = key; case AIR_JUMP -> config.airJumpKey = key; case FULLBRIGHT -> config.fullbrightKey = key; case FPS -> config.showFpsKey = key; case COORDINATES -> config.showCoordinatesKey = key; } }
+    private int getKeybind() { return switch (type) { case PLAYER -> config.playerEspKey; case ENTITY -> config.entityHighlightsKey; case ITEM, PROJECTILE -> -1; case BLOCKS -> config.blockHighlightsKey; case TRAJECTORY -> config.trajectoryPreviewKey; case XRAY -> config.xrayKey; case FLIGHT -> config.flightKey; case AUTO_SPRINT -> config.autoSprintKey; case NO_SLOW -> config.noSlowKey; case NO_STUN -> config.noStunKey; case NO_FALL -> config.noFallKey; case CRITICALS -> config.criticalsKey; case AUTO_TOTEM -> config.autoTotemKey; case AIR_JUMP -> config.airJumpKey; case FULLBRIGHT -> config.fullbrightKey; case FPS -> config.showFpsKey; case COORDINATES -> config.showCoordinatesKey; }; }
+    private void setKeybind(int key) { switch (type) { case PLAYER -> config.playerEspKey = key; case ENTITY -> config.entityHighlightsKey = key; case ITEM, PROJECTILE -> { } case BLOCKS -> config.blockHighlightsKey = key; case TRAJECTORY -> config.trajectoryPreviewKey = key; case XRAY -> config.xrayKey = key; case FLIGHT -> config.flightKey = key; case AUTO_SPRINT -> config.autoSprintKey = key; case NO_SLOW -> config.noSlowKey = key; case NO_STUN -> config.noStunKey = key; case NO_FALL -> config.noFallKey = key; case CRITICALS -> config.criticalsKey = key; case AUTO_TOTEM -> config.autoTotemKey = key; case AIR_JUMP -> config.airJumpKey = key; case FULLBRIGHT -> config.fullbrightKey = key; case FPS -> config.showFpsKey = key; case COORDINATES -> config.showCoordinatesKey = key; } }
 
-    private String title() { return switch (type) { case PLAYER -> "Player ESP Settings"; case ENTITY -> "Entity ESP Settings"; case BLOCKS -> "Block ESP Settings"; case TRAJECTORY -> "Trajectory Settings"; case XRAY -> "X-Ray Settings"; case FLIGHT -> "Flight Settings"; case AUTO_SPRINT -> "Auto Sprint Settings"; case NO_SLOW -> "No Slow Settings"; case NO_STUN -> "No Stun Settings"; case NO_FALL -> "No Fall Settings"; case CRITICALS -> "Criticals Settings"; case AIR_JUMP -> "Air Jump Settings"; case FULLBRIGHT -> "Fullbright Settings"; case FPS -> "FPS HUD Settings"; case COORDINATES -> "Coordinates HUD Settings"; }; }
-    private String description() { return switch (type) { case PLAYER -> "Highlights other players through walls."; case ENTITY -> "Highlights selected entity types through walls."; case BLOCKS -> "Shows selected nearby blocks with an overlay."; case TRAJECTORY -> "Predicts projectile paths and collision targets."; case XRAY -> "Only renders ores; opacity controls every other block."; case FLIGHT -> "Controls horizontal, vertical, and sprint flight speed."; default -> "Click the keybind row to bind a key."; }; }
+    private String title() { return switch (type) { case PLAYER -> "Player ESP Settings"; case ENTITY -> "Entity ESP Settings"; case ITEM -> "Item ESP Settings"; case PROJECTILE -> "Projectile ESP Settings"; case BLOCKS -> "Block ESP Settings"; case TRAJECTORY -> "Trajectory Settings"; case XRAY -> "X-Ray Settings"; case FLIGHT -> "Flight Settings"; case AUTO_SPRINT -> "Auto Sprint Settings"; case NO_SLOW -> "No Slow Settings"; case NO_STUN -> "No Stun Settings"; case NO_FALL -> "No Fall Settings"; case CRITICALS -> "Criticals Settings"; case AUTO_TOTEM -> "Auto Totem Settings"; case AIR_JUMP -> "Air Jump Settings"; case FULLBRIGHT -> "Fullbright Settings"; case FPS -> "FPS HUD Settings"; case COORDINATES -> "Coordinates HUD Settings"; }; }
+    private String description() { return switch (type) { case PLAYER -> "Highlights other players with stable boxes."; case ENTITY -> "Highlights selected entity types."; case ITEM -> "Highlights dropped items."; case PROJECTILE -> "Highlights arrows and other projectiles."; case BLOCKS -> "Shows selected nearby blocks with an overlay."; case TRAJECTORY -> "Predicts projectile paths and collision targets."; case XRAY -> "Rebuilds chunks to show selected blocks."; case FLIGHT -> "Controls horizontal, vertical, and sprint flight speed."; case AUTO_TOTEM -> "Refills your offhand from inventory."; default -> "Click the keybind row to bind a key."; }; }
 
     private static String[] row(String a, String b) { return new String[]{a, b}; }
     private static String onOff(boolean value) { return value ? "ON" : "OFF"; }

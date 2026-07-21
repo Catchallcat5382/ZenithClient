@@ -24,6 +24,10 @@ public final class ZenithConfig {
     public boolean playerNameTags = true;
     public boolean entityTracers = false;
     public boolean entityNameTags = false;
+    public boolean itemEsp = false;
+    public boolean itemTracers = false;
+    public boolean projectileEsp = false;
+    public boolean projectileTracers = false;
     public boolean blockHighlights = false;
     public boolean trajectoryPreview = false;
     public boolean showFps = true;
@@ -36,6 +40,7 @@ public final class ZenithConfig {
     public boolean noStun = false;
     public boolean noFall = false;
     public boolean criticals = false;
+    public boolean autoTotem = false;
     public boolean airJump = false;
     public int xrayOpacity = 0;
     public XrayMode xrayMode = XrayMode.ORES;
@@ -52,6 +57,8 @@ public final class ZenithConfig {
     public int entityFillColor = 0xFF3B30;
     public int entityFillOpacity = 18;
     public int entityOutlineThickness = 2;
+    public int itemEspColor = 0xFFD60A;
+    public int projectileEspColor = 0xFF39FF14;
     public EspShape playerEspShape = EspShape.BOX_3D;
     public EspShape entityEspShape = EspShape.BOX_3D;
     public int blockOutlineColor = 0xFFD166;
@@ -81,6 +88,7 @@ public final class ZenithConfig {
     public int noStunKey = -1;
     public int noFallKey = -1;
     public int criticalsKey = -1;
+    public int autoTotemKey = -1;
     public int airJumpKey = -1;
 
     // Comma-separated entity type filters. Empty means use the selected category.

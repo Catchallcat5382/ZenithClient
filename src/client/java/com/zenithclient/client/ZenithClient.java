@@ -6,8 +6,10 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
+import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -17,6 +19,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.monster.Monster;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
@@ -36,7 +40,7 @@ public final class ZenithClient implements ClientModInitializer {
     private static boolean zenithNightVision;
     private static boolean flightWasActive;
     private static final List<BlockPos> HIGHLIGHTED_BLOCKS = new ArrayList<>();
-    private static final boolean[] KEY_STATES = new boolean[15];
+    private static final boolean[] KEY_STATES = new boolean[16];
     private static boolean jumpWasDown;
     private static boolean menuKeyWasDown;
     private static String toggleNotice = "";
@@ -59,7 +63,7 @@ public final class ZenithClient implements ClientModInitializer {
         HudElementRegistry.attachElementBefore(
                 VanillaHudElements.CHAT,
                 Identifier.fromNamespaceAndPath(MOD_ID, "status_hud"),
-                (graphics, deltaTracker) -> renderHud(graphics)
+                ZenithClient::renderHud
         );
     }
 
@@ -71,7 +75,7 @@ public final class ZenithClient implements ClientModInitializer {
         if ((menuDown && !menuKeyWasDown) || openMenu.consumeClick()) {
             if (client.gui.screen() instanceof ZenithScreen || client.gui.screen() instanceof ModuleSettingsScreen) {
                 client.setScreenAndShow(null);
-            } else {
+            } else if (client.gui.screen() == null) {
                 client.setScreenAndShow(new ZenithScreen(client.gui.screen(), CONFIG));
             }
         }
@@ -89,6 +93,7 @@ public final class ZenithClient implements ClientModInitializer {
 
         if (CONFIG.flight) applySmoothFlight(client);
         applyMovementUtilities(client);
+        if (CONFIG.autoTotem && ticks % 2 == 0) refillTotem(client);
 
         if (CONFIG.blockHighlights) {
             BlockPos origin = client.player.blockPosition();
@@ -192,8 +197,8 @@ public final class ZenithClient implements ClientModInitializer {
         if (!(packet instanceof net.minecraft.network.protocol.game.ServerboundMovePlayerPacket)) return;
         if (client.player.isFallFlying() || client.player.isInWater() || client.player.isInLava()) return;
 
-        // Meteor-style packet mode: during normal falling only report grounded once
-        // descent is meaningful. During Zenith flight, always report grounded so
+        // Packet mode: during normal falling only report grounded once
+        // descent is meaningful. During Zenith flight, report grounded so
         // toggling flight off and landing remains smooth and damage-free.
         if (CONFIG.flight || client.player.getDeltaMovement().y < -0.5) {
             ((com.zenithclient.client.mixin.ServerboundMovePlayerPacketAccessor) packet).zenith$setOnGround(true);
@@ -269,17 +274,21 @@ public final class ZenithClient implements ClientModInitializer {
     }
 
     private static void handleModuleKeybinds(Minecraft client) {
+        if (client.gui.screen() != null) {
+            java.util.Arrays.fill(KEY_STATES, false);
+            return;
+        }
         long window = client.getWindow().handle();
         int[] keys = {
                 CONFIG.playerEspKey, CONFIG.entityHighlightsKey, CONFIG.blockHighlightsKey, CONFIG.trajectoryPreviewKey,
                 CONFIG.flightKey, CONFIG.autoSprintKey, CONFIG.fullbrightKey,
                 CONFIG.showFpsKey, CONFIG.showCoordinatesKey, CONFIG.xrayKey,
-                CONFIG.noSlowKey, CONFIG.noStunKey, CONFIG.noFallKey, CONFIG.criticalsKey, CONFIG.airJumpKey
+                CONFIG.noSlowKey, CONFIG.noStunKey, CONFIG.noFallKey, CONFIG.criticalsKey, CONFIG.autoTotemKey, CONFIG.airJumpKey
         };
 
         for (int i = 0; i < keys.length; i++) {
             boolean down = keys[i] >= 0 && GLFW.glfwGetKey(window, keys[i]) == GLFW.GLFW_PRESS;
-            if (down && !KEY_STATES[i] && !(client.gui.screen() instanceof ZenithScreen) && !(client.gui.screen() instanceof ModuleSettingsScreen)) toggleByIndex(i);
+            if (down && !KEY_STATES[i]) toggleByIndex(i);
             KEY_STATES[i] = down;
         }
     }
@@ -300,7 +309,8 @@ public final class ZenithClient implements ClientModInitializer {
             case 11 -> CONFIG.noStun = !CONFIG.noStun;
             case 12 -> CONFIG.noFall = !CONFIG.noFall;
             case 13 -> CONFIG.criticals = !CONFIG.criticals;
-            case 14 -> CONFIG.airJump = !CONFIG.airJump;
+            case 14 -> CONFIG.autoTotem = !CONFIG.autoTotem;
+            case 15 -> CONFIG.airJump = !CONFIG.airJump;
             default -> { return; }
         }
         CONFIG.save();
@@ -316,7 +326,8 @@ public final class ZenithClient implements ClientModInitializer {
         // Renderer refresh method names have changed across recent Minecraft mappings.
         // Resolve the available no-argument refresh method at runtime so this project
         // remains compile-safe on Minecraft 26.2 while still rebuilding X-Ray chunks.
-        String[] refreshMethods = { "allChanged", "reload", "needsUpdate" };
+        String[] refreshMethods = { "resetLevelRenderData", "clearVisibleSections", "allChanged", "reload" };
+        boolean refreshed = false;
         for (String methodName : refreshMethods) {
             try {
                 java.lang.reflect.Method method;
@@ -327,11 +338,12 @@ public final class ZenithClient implements ClientModInitializer {
                     method.setAccessible(true);
                 }
                 method.invoke(client.levelRenderer);
-                return;
+                refreshed = true;
             } catch (ReflectiveOperationException ignored) {
                 // Try the next mapped method name.
             }
         }
+        if (refreshed) return;
 
         // Fallback: changing the render distance to its current value forces the
         // renderer to reconsider chunk state on versions without the names above.
@@ -341,6 +353,25 @@ public final class ZenithClient implements ClientModInitializer {
         } catch (RuntimeException ignored) {
             // X-Ray remains toggled; chunks will naturally rebuild as the player moves.
         }
+    }
+
+    private static void refillTotem(Minecraft client) {
+        if (client.player == null || client.gameMode == null) return;
+        if (client.gui.screen() instanceof ChatScreen || client.gui.screen() instanceof ZenithScreen || client.gui.screen() instanceof ModuleSettingsScreen) return;
+        if (client.player.getOffhandItem().is(Items.TOTEM_OF_UNDYING)) return;
+
+        int inventorySlot = -1;
+        for (int i = 0; i < client.player.getInventory().getContainerSize(); i++) {
+            if (i == net.minecraft.world.entity.player.Inventory.SLOT_OFFHAND) continue;
+            if (client.player.getInventory().getItem(i).is(Items.TOTEM_OF_UNDYING)) {
+                inventorySlot = i;
+                break;
+            }
+        }
+        if (inventorySlot < 0) return;
+
+        int menuSlot = inventorySlot < 9 ? inventorySlot + 36 : inventorySlot;
+        client.gameMode.handleContainerInput(client.player.inventoryMenu.containerId, menuSlot, 40, ContainerInput.SWAP, client.player);
     }
 
     public static void setTrajectoryTarget(Entity entity) {
@@ -436,10 +467,10 @@ public final class ZenithClient implements ClientModInitializer {
                 || block == Blocks.ENDER_CHEST || block == Blocks.SHULKER_BOX;
     }
 
-    private static void renderHud(net.minecraft.client.gui.GuiGraphicsExtractor graphics) {
+    private static void renderHud(net.minecraft.client.gui.GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
         Minecraft client = Minecraft.getInstance();
         if (client.player == null) return;
-        ScreenSpaceVisualRenderer.render(graphics, client, CONFIG, HIGHLIGHTED_BLOCKS);
+        ScreenSpaceVisualRenderer.render(graphics, client, deltaTracker, CONFIG, HIGHLIGHTED_BLOCKS);
         int y = 6;
         if (CONFIG.showFps) {
             graphics.text(client.font, "Zenith | " + client.getFps() + " FPS", 6, y,
@@ -478,7 +509,8 @@ public final class ZenithClient implements ClientModInitializer {
             case 11 -> { name = "No Stun"; enabled = CONFIG.noStun; }
             case 12 -> { name = "No Fall"; enabled = CONFIG.noFall; }
             case 13 -> { name = "Criticals"; enabled = CONFIG.criticals; }
-            case 14 -> { name = "Air Jump"; enabled = CONFIG.airJump; }
+            case 14 -> { name = "Auto Totem"; enabled = CONFIG.autoTotem; }
+            case 15 -> { name = "Air Jump"; enabled = CONFIG.airJump; }
             default -> { return; }
         }
         net.minecraft.network.chat.MutableComponent message = net.minecraft.network.chat.Component.literal("[")

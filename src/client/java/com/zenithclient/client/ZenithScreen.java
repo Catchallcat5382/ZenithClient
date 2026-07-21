@@ -15,7 +15,7 @@ public final class ZenithScreen extends Screen {
     private static final Identifier LOGO = Identifier.fromNamespaceAndPath(ZenithClient.MOD_ID, "icon.png");
 
     private enum Category { VISUALS, COMBAT, MOVEMENT, HUD, CONFIG }
-    private enum Module { PLAYER_ESP, ENTITY_OUTLINES, BLOCK_OUTLINES, BOW_TRAJECTORY, XRAY, FLIGHT, AUTO_SPRINT, NO_SLOW, NO_STUN, NO_FALL, CRITICALS, AIR_JUMP, FULLBRIGHT, FPS, COORDINATES }
+    private enum Module { PLAYER_ESP, ENTITY_OUTLINES, ITEM_ESP, PROJECTILE_ESP, BLOCK_OUTLINES, BOW_TRAJECTORY, XRAY, FLIGHT, AUTO_SPRINT, NO_SLOW, NO_STUN, NO_FALL, CRITICALS, AUTO_TOTEM, AIR_JUMP, FULLBRIGHT, FPS, COORDINATES }
     private enum HitType { TAB, MODULE, DONE, THEME_ACCENT, PANEL_OPACITY, BUTTON_OPACITY, RESET_THEME }
 
     private record Hitbox(HitType type, int value, int x, int y, int width, int height) {
@@ -180,6 +180,8 @@ public final class ZenithScreen extends Screen {
         ModuleSettingsScreen.Type type = switch (m) {
             case PLAYER_ESP -> ModuleSettingsScreen.Type.PLAYER;
             case ENTITY_OUTLINES -> ModuleSettingsScreen.Type.ENTITY;
+            case ITEM_ESP -> ModuleSettingsScreen.Type.ITEM;
+            case PROJECTILE_ESP -> ModuleSettingsScreen.Type.PROJECTILE;
             case BLOCK_OUTLINES -> ModuleSettingsScreen.Type.BLOCKS;
             case BOW_TRAJECTORY -> ModuleSettingsScreen.Type.TRAJECTORY;
             case XRAY -> ModuleSettingsScreen.Type.XRAY;
@@ -189,6 +191,7 @@ public final class ZenithScreen extends Screen {
             case NO_STUN -> ModuleSettingsScreen.Type.NO_STUN;
             case NO_FALL -> ModuleSettingsScreen.Type.NO_FALL;
             case CRITICALS -> ModuleSettingsScreen.Type.CRITICALS;
+            case AUTO_TOTEM -> ModuleSettingsScreen.Type.AUTO_TOTEM;
             case AIR_JUMP -> ModuleSettingsScreen.Type.AIR_JUMP;
             case FULLBRIGHT -> ModuleSettingsScreen.Type.FULLBRIGHT;
             case FPS -> ModuleSettingsScreen.Type.FPS;
@@ -202,6 +205,8 @@ public final class ZenithScreen extends Screen {
         switch (m) {
             case PLAYER_ESP -> config.playerEsp = !config.playerEsp;
             case ENTITY_OUTLINES -> config.entityHighlights = !config.entityHighlights;
+            case ITEM_ESP -> config.itemEsp = !config.itemEsp;
+            case PROJECTILE_ESP -> config.projectileEsp = !config.projectileEsp;
             case BLOCK_OUTLINES -> config.blockHighlights = !config.blockHighlights;
             case BOW_TRAJECTORY -> config.trajectoryPreview = !config.trajectoryPreview;
             case XRAY -> config.xray = !config.xray;
@@ -211,6 +216,7 @@ public final class ZenithScreen extends Screen {
             case NO_STUN -> config.noStun = !config.noStun;
             case NO_FALL -> config.noFall = !config.noFall;
             case CRITICALS -> config.criticals = !config.criticals;
+            case AUTO_TOTEM -> config.autoTotem = !config.autoTotem;
             case AIR_JUMP -> config.airJump = !config.airJump;
             case FULLBRIGHT -> config.fullbright = !config.fullbright;
             case FPS -> config.showFps = !config.showFps;
@@ -225,6 +231,8 @@ public final class ZenithScreen extends Screen {
         return switch (m) {
             case PLAYER_ESP -> config.playerEsp;
             case ENTITY_OUTLINES -> config.entityHighlights;
+            case ITEM_ESP -> config.itemEsp;
+            case PROJECTILE_ESP -> config.projectileEsp;
             case BLOCK_OUTLINES -> config.blockHighlights;
             case BOW_TRAJECTORY -> config.trajectoryPreview;
             case XRAY -> config.xray;
@@ -234,6 +242,7 @@ public final class ZenithScreen extends Screen {
             case NO_STUN -> config.noStun;
             case NO_FALL -> config.noFall;
             case CRITICALS -> config.criticals;
+            case AUTO_TOTEM -> config.autoTotem;
             case AIR_JUMP -> config.airJump;
             case FULLBRIGHT -> config.fullbright;
             case FPS -> config.showFps;
@@ -243,8 +252,8 @@ public final class ZenithScreen extends Screen {
 
     private static List<Module> modules(Category c) {
         return switch (c) {
-            case VISUALS -> List.of(Module.PLAYER_ESP, Module.ENTITY_OUTLINES, Module.BLOCK_OUTLINES, Module.BOW_TRAJECTORY, Module.XRAY);
-            case COMBAT -> List.of(Module.CRITICALS);
+            case VISUALS -> List.of(Module.PLAYER_ESP, Module.ENTITY_OUTLINES, Module.ITEM_ESP, Module.PROJECTILE_ESP, Module.BLOCK_OUTLINES, Module.BOW_TRAJECTORY, Module.XRAY);
+            case COMBAT -> List.of(Module.CRITICALS, Module.AUTO_TOTEM);
             case MOVEMENT -> List.of(Module.FLIGHT, Module.AUTO_SPRINT, Module.NO_SLOW, Module.NO_STUN, Module.NO_FALL, Module.AIR_JUMP);
             case HUD -> List.of(Module.FULLBRIGHT, Module.FPS, Module.COORDINATES);
             case CONFIG -> List.of();
@@ -253,9 +262,9 @@ public final class ZenithScreen extends Screen {
 
     private static String moduleName(Module m) { return switch (m) {
         case PLAYER_ESP -> "Player ESP";
-            case ENTITY_OUTLINES -> "Entity ESP"; case BLOCK_OUTLINES -> "Block ESP"; case BOW_TRAJECTORY -> "Trajectories";
+            case ENTITY_OUTLINES -> "Entity ESP"; case ITEM_ESP -> "Item ESP"; case PROJECTILE_ESP -> "Projectile ESP"; case BLOCK_OUTLINES -> "Block ESP"; case BOW_TRAJECTORY -> "Trajectories";
         case XRAY -> "X-Ray"; case FLIGHT -> "Flight"; case AUTO_SPRINT -> "Auto Sprint"; case NO_SLOW -> "No Slow";
-        case NO_STUN -> "No Stun"; case NO_FALL -> "No Fall"; case CRITICALS -> "Criticals"; case AIR_JUMP -> "Air Jump"; case FULLBRIGHT -> "Fullbright"; case FPS -> "FPS HUD";
+        case NO_STUN -> "No Stun"; case NO_FALL -> "No Fall"; case CRITICALS -> "Criticals"; case AUTO_TOTEM -> "Auto Totem"; case AIR_JUMP -> "Air Jump"; case FULLBRIGHT -> "Fullbright"; case FPS -> "FPS HUD";
         case COORDINATES -> "Coordinates";
     }; }
     private static String label(Category c) { return c.name().charAt(0) + c.name().substring(1).toLowerCase(); }

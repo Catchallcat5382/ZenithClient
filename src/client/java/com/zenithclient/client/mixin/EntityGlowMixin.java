@@ -15,12 +15,7 @@ public abstract class EntityGlowMixin {
         Minecraft client = Minecraft.getInstance();
         Entity self = (Entity) (Object) this;
         if (client.player == null || client.level == null || self == client.player) return;
-        var config = ZenithClient.getConfig();
-        boolean inRange = self.distanceToSqr(client.player) <= (double) config.entityRange * config.entityRange;
-        boolean selectedPlayer = self instanceof net.minecraft.world.entity.player.Player && config.playerEsp;
-        boolean selectedEntity = !(self instanceof net.minecraft.world.entity.player.Player)
-                && config.entityHighlights && ZenithClient.matchesEntityMode(self);
-        if ((inRange && (selectedPlayer || selectedEntity)) || ZenithClient.isTrajectoryTarget(self)) {
+        if (ZenithClient.isTrajectoryTarget(self)) {
             cir.setReturnValue(true);
         }
     }

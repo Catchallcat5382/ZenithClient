@@ -1,11 +1,14 @@
 package com.zenithclient.client;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ClipContext;
@@ -25,41 +28,46 @@ import java.util.List;
 public final class ScreenSpaceVisualRenderer {
     private ScreenSpaceVisualRenderer() { }
 
-    public static void render(GuiGraphicsExtractor graphics, Minecraft client, ZenithConfig config,
+    public static void render(GuiGraphicsExtractor graphics, Minecraft client, DeltaTracker deltaTracker, ZenithConfig config,
                               List<BlockPos> highlightedBlocks) {
         if (client.player == null || client.level == null) return;
 
-        Projection projection = new Projection(client);
-        renderEntities(graphics, client, config, projection);
+        float tickDelta = deltaTracker.getGameTimeDeltaPartialTick(true);
+        Projection projection = new Projection(client, tickDelta);
+        renderEntities(graphics, client, config, projection, tickDelta);
         if (config.blockHighlights) renderBlocks(graphics, config, projection, highlightedBlocks);
         if (config.trajectoryPreview) renderTrajectory(graphics, client, config, projection);
     }
 
     private static void renderEntities(GuiGraphicsExtractor graphics, Minecraft client,
-                                       ZenithConfig config, Projection projection) {
+                                       ZenithConfig config, Projection projection, float tickDelta) {
         double rangeSquared = (double) config.entityRange * config.entityRange;
         int rendered = 0;
         for (Entity entity : client.level.entitiesForRendering()) {
-            if (rendered >= 128) break;
+            if (rendered >= 96) break;
             if (entity == client.player || entity.distanceToSqr(client.player) > rangeSquared) continue;
             boolean player = entity instanceof Player;
+            boolean item = entity instanceof ItemEntity;
+            boolean projectile = entity instanceof Projectile;
             if (player && !config.playerEsp) continue;
-            if (!player && (!config.entityHighlights || !ZenithClient.matchesEntityMode(entity))) continue;
+            if (item && !config.itemEsp) continue;
+            if (projectile && !config.projectileEsp) continue;
+            if (!player && !item && !projectile && (!config.entityHighlights || !ZenithClient.matchesEntityMode(entity))) continue;
 
-            AABB espBox = entity.getBoundingBox().inflate(0.04);
+            AABB espBox = lerpedBox(entity, tickDelta).inflate(0.04);
             ScreenPoint[] corners = projectCorners(projection, espBox);
             ScreenRect rect = bounds(corners);
             if (rect == null || rect.width() < 2 || rect.height() < 3) continue;
 
-            int outlineColor = player ? config.playerOutlineColor : config.entityOutlineColor;
-            int fillColor = player ? config.playerFillColor : config.entityFillColor;
-            int fillOpacity = player ? config.playerFillOpacity : config.entityFillOpacity;
-            int thickness = player ? config.playerOutlineThickness : config.entityOutlineThickness;
+            int outlineColor = player ? config.playerOutlineColor : item ? config.itemEspColor : projectile ? config.projectileEspColor : config.entityOutlineColor;
+            int fillColor = player ? config.playerFillColor : item ? config.itemEspColor : projectile ? config.projectileEspColor : config.entityFillColor;
+            int fillOpacity = player ? config.playerFillOpacity : item || projectile ? 10 : config.entityFillOpacity;
+            int thickness = player ? config.playerOutlineThickness : item || projectile ? 1 : config.entityOutlineThickness;
             ZenithConfig.EspShape shape = player ? config.playerEspShape : config.entityEspShape;
-            boolean fillEnabled = player || config.entityFill;
-            boolean outlineEnabled = player || config.entityOutline;
-            boolean tracers = player ? config.playerTracers : config.entityTracers;
-            boolean nameTags = player ? config.playerNameTags : config.entityNameTags;
+            boolean fillEnabled = player || item || projectile || config.entityFill;
+            boolean outlineEnabled = item || projectile || player || config.entityOutline;
+            boolean tracers = player ? config.playerTracers : item ? config.itemTracers : projectile ? config.projectileTracers : config.entityTracers;
+            boolean nameTags = player ? config.playerNameTags : item || projectile || config.entityNameTags;
 
             if (fillEnabled && fillOpacity > 0) {
                 graphics.fill(rect.minX, rect.minY, rect.maxX, rect.maxY,
@@ -84,6 +92,17 @@ public final class ScreenSpaceVisualRenderer {
             }
             rendered++;
         }
+    }
+
+    private static AABB lerpedBox(Entity entity, float tickDelta) {
+        double x = lerp(entity.xo, entity.getX(), tickDelta);
+        double y = lerp(entity.yo, entity.getY(), tickDelta);
+        double z = lerp(entity.zo, entity.getZ(), tickDelta);
+        return entity.getBoundingBox().move(x - entity.getX(), y - entity.getY(), z - entity.getZ());
+    }
+
+    private static double lerp(double from, double to, float delta) {
+        return from + (to - from) * delta;
     }
 
     private static void renderBlocks(GuiGraphicsExtractor graphics, ZenithConfig config,
@@ -300,13 +319,11 @@ public final class ScreenSpaceVisualRenderer {
         private final int height;
         private final double focalLength;
 
-        private Projection(Minecraft client) {
-            // Minecraft 26.2 no longer exposes GameRenderer#getMainCamera in these mappings.
-            // Use the local player's interpolated eye position and view rotation, which are
-            // the same supported values used by the trajectory renderer in this project.
-            this.origin = client.player.getEyePosition();
-            double yaw = Math.toRadians(client.player.getYRot());
-            double pitch = Math.toRadians(client.player.getXRot());
+        private Projection(Minecraft client, float tickDelta) {
+            Entity camera = client.getCameraEntity() != null ? client.getCameraEntity() : client.player;
+            this.origin = camera.getEyePosition(tickDelta);
+            double yaw = Math.toRadians(camera.getViewYRot(tickDelta));
+            double pitch = Math.toRadians(camera.getViewXRot(tickDelta));
             this.forward = new Vec3(-Math.sin(yaw) * Math.cos(pitch), -Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)).normalize();
             Vec3 worldUp = new Vec3(0.0, 1.0, 0.0);
             Vec3 computedRight = forward.cross(worldUp);

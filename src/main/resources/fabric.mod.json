@@ -3,12 +3,12 @@
   "id": "zenithclient",
   "version": "${version}",
   "name": "ZenithClient",
-  "description": "ZenithClient is a client-side utility mod for cheats.",
+  "description": "ZenithClient is a client-side Fabric utility mod with visual overlays, movement tools, combat assists, HUD options, X-Ray, trajectories, and configurable ESP.",
   "authors": ["catchallcat5382"],
   "contact": {
-    "sources": "https://github.com/Catchallcat5382"
+    "sources": "https://github.com/Catchallcat5382/ZenithClient"
   },
-  "license": "GPL-3.0-only",
+  "license": "MIT",
   "icon": "assets/zenithclient/icon.png",
   "environment": "client",
   "mixins": ["zenithclient.mixins.json"],

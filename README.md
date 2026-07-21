@@ -1,42 +1,57 @@
+<p align="center">
+  <img src="src/main/resources/assets/zenithclient/icon.png" width="96" alt="ZenithClient logo">
+</p>
+
 # ZenithClient
 
-ZenithClient is a client-side Fabric utility mod for Minecraft 26.2. The project is compiled with JDK 25.
+ZenithClient is a client-side Fabric utility mod for Minecraft 26.2 built with JDK 25.
 
-## Menu
+## Features
 
-Press **Right Shift** to open ZenithClient. The keybind can be changed in Minecraft's Controls menu.
+### Visuals
 
-### Visuals tab
-- Player ESP with selectable 3D box, 2D box, corner box, tracers, name tags, color, fill, thickness, and range settings.
-- Entity ESP with selectable targets: players, hostile mobs, passive mobs, zombies, creepers, skeletons, all mobs, or all entities.
-- Entity ESP controls for shape, outline, fill/chams, tracers, name tags, color, opacity, thickness, and range.
-- Block ESP toggle.
-- Selectable block targets: valuable ores, all ores, containers, spawners, ancient debris, or diamond ore.
-- Trajectory preview with simulation quality, line color, thickness, and start distance.
-- X-Ray with selectable visible block mode and hidden-block opacity.
+- Player ESP: 3D box, 2D box, corner box, fill, outline, tracers, name tags, color, thickness, opacity, and range.
+- Entity ESP: target groups, shape modes, fill/chams, outline, tracers, name tags, color, thickness, opacity, and range.
+- Item ESP: dropped item boxes, labels, color, range, and tracers.
+- Projectile ESP: projectile boxes, labels, color, range, and tracers.
+- Block ESP: configurable block group, color, fill opacity, radius, and cached low-lag scanning.
+- Trajectories: projectile path preview with quality, color, thickness, and start-distance controls.
+- X-Ray: chunk-rebuild toggle that shows selected valuable blocks while hiding non-target block geometry.
 
-### Misc tab
+### Combat
+
+- Criticals.
+- Auto Totem: refills the offhand with a totem from inventory when one is available.
+
+### Movement
+
+- Flight with horizontal speed, vertical speed, and sprint multiplier.
+- Auto Sprint.
+- No Slow.
+- No Stun.
+- No Fall.
+- Air Jump.
+
+### HUD
+
+- Fullbright.
 - FPS HUD.
 - Coordinates HUD.
-- Fullbright.
-- Auto Sprint.
 
-## Build with Java 25
-1. Install a full JDK 25 distribution.
-2. Open Command Prompt and run `java -version`. The first line must report version 25.
-3. Double-click `build.bat`.
-4. The builder downloads Gradle 9.4.0 into `.gradle-bootstrap` on its first run.
-5. The newest mod JAR is copied to `releases/latest/`.
-6. A clean versioned copy is stored under `releases/v<version>/`.
+## Controls
 
-The Java checker safely captures the normal stderr output produced by `java -version`, so a valid Java 25 installation is no longer mistaken for an error.
+Press Right Shift during gameplay to open ZenithClient. Module keybinds only fire while no screen is open, so typing in chat or another text screen will not toggle modules.
 
-## Git and releases
+Right-click a module card to open its settings. Numeric settings support both dragging the slider and typing an exact value.
 
-Run `push_changes.bat` to initialize git if needed, commit changes, and push to `origin`.
+## Build
 
-Run `release_version.bat` to show the current version, optionally update `mod_version`, build the JAR, commit, tag `v<version>`, push the tag, and create a GitHub release when GitHub CLI is available.
+1. Install JDK 25.
+2. Run `build.bat`.
+3. The latest jar is copied to `releases/latest/`.
+4. A versioned jar is copied to `releases/v<version>/`.
 
-## Attribution
+## Git and Releases
 
-Meteor Client render behavior was used as an open-source reference. See `METEOR_ATTRIBUTION.md`.
+- `push_changes.bat` commits local changes and pushes `main`.
+- `release_version.bat` shows the current version, optionally updates `mod_version`, builds the jar, commits, tags `v<version>`, pushes the tag, and uploads the jar from `releases/latest/` to the GitHub release.

@@ -8,10 +8,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.Shapes;
 
-/**
- * X-ray decisions ported from Meteor Client's render/Xray module semantics.
- * Meteor Client is GPL-3.0; see METEOR_ATTRIBUTION.md.
- */
+/** X-Ray block visibility decisions for ZenithClient. */
 public final class XrayHooks {
     private XrayHooks() { }
 
@@ -25,7 +22,7 @@ public final class XrayHooks {
         return !isWhitelisted(block);
     }
 
-    /** Meteor-style side decision: reveal a selected block beside hidden/transparent blocks. */
+    /** Reveal selected block faces beside hidden or transparent blocks. */
     public static boolean modifyDrawSide(BlockState state, BlockGetter view, BlockPos pos, Direction facing, boolean vanilla) {
         if (!ZenithClient.getConfig().xray) return vanilla;
         if (vanilla || isBlocked(state.getBlock())) return vanilla;
