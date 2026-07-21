@@ -24,7 +24,7 @@ ZenithClient is a client-side Fabric utility mod for Minecraft 26.2 built with J
 - Criticals.
 - Auto Totem: refills the offhand with a totem from inventory when one is available.
 - Attribute Swap: temporarily swaps to a selected hotbar slot while attacking, then swaps back.
-- Kill Aura, Reach, and Mace Kill controls with right-click settings pages.
+- Kill Aura, Reach, Infinite Reach, Mace Kill, and Super Punch controls with right-click settings pages.
 
 ### Movement
 
@@ -48,7 +48,8 @@ Press Right Shift during gameplay to open ZenithClient. Module keybinds only fir
 
 Right-click a module card to open its settings. Numeric settings support both dragging the slider and typing an exact value.
 
-Chat commands start with `.`. `.autovaultclip down`, `.autovaultclip up`, and `.autovaultclip highest` move to the next safe block level in that direction; the down mode refuses to clip into the void.
+Chat commands start with `.`. `.autovaultclip down`, `.autovaultclip up`, and `.autovaultclip highest` move to the next matching block level in that direction.
+Press Tab while typing `.aut...` in chat to autocomplete `.autovaultclip`.
 
 ## Build
 

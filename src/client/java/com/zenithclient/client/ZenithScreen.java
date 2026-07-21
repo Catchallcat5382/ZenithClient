@@ -15,7 +15,7 @@ public final class ZenithScreen extends Screen {
     private static final Identifier LOGO = Identifier.fromNamespaceAndPath(ZenithClient.MOD_ID, "icon.png");
 
     private enum Category { VISUALS, COMBAT, MOVEMENT, HUD, CONFIG }
-    private enum Module { PLAYER_ESP, ENTITY_OUTLINES, ITEM_ESP, PROJECTILE_ESP, BLOCK_OUTLINES, BOW_TRAJECTORY, XRAY, FLIGHT, SPEED, AUTO_SPRINT, NO_SLOW, NO_STUN, NO_FALL, AIR_JUMP, FREECAM, CRITICALS, AUTO_TOTEM, ATTRIBUTE_SWAP, KILL_AURA, REACH, MACE_KILL, FULLBRIGHT, FPS, COORDINATES }
+    private enum Module { PLAYER_ESP, ENTITY_OUTLINES, ITEM_ESP, PROJECTILE_ESP, BLOCK_OUTLINES, BOW_TRAJECTORY, XRAY, FLIGHT, SPEED, AUTO_SPRINT, NO_SLOW, NO_STUN, NO_FALL, AIR_JUMP, FREECAM, CRITICALS, AUTO_TOTEM, ATTRIBUTE_SWAP, KILL_AURA, REACH, INFINITE_REACH, MACE_KILL, SUPER_PUNCH, FULLBRIGHT, FPS, COORDINATES }
     private enum HitType { TAB, MODULE, DONE, THEME_ACCENT, PANEL_OPACITY, BUTTON_OPACITY, CHAT_MESSAGES, RESET_THEME }
 
     private record Hitbox(HitType type, int value, int x, int y, int width, int height) {
@@ -197,8 +197,10 @@ public final class ZenithScreen extends Screen {
             case ATTRIBUTE_SWAP -> ModuleSettingsScreen.Type.ATTRIBUTE_SWAP;
             case KILL_AURA -> ModuleSettingsScreen.Type.KILL_AURA;
             case REACH -> ModuleSettingsScreen.Type.REACH;
+            case INFINITE_REACH -> ModuleSettingsScreen.Type.INFINITE_REACH;
             case SPEED -> ModuleSettingsScreen.Type.SPEED;
             case MACE_KILL -> ModuleSettingsScreen.Type.MACE_KILL;
+            case SUPER_PUNCH -> ModuleSettingsScreen.Type.SUPER_PUNCH;
             case AIR_JUMP -> ModuleSettingsScreen.Type.AIR_JUMP;
             case FREECAM -> ModuleSettingsScreen.Type.FREECAM;
             case FULLBRIGHT -> ModuleSettingsScreen.Type.FULLBRIGHT;
@@ -228,8 +230,10 @@ public final class ZenithScreen extends Screen {
             case ATTRIBUTE_SWAP -> config.attributeSwap = !config.attributeSwap;
             case KILL_AURA -> config.killAura = !config.killAura;
             case REACH -> config.reach = !config.reach;
+            case INFINITE_REACH -> config.infiniteReach = !config.infiniteReach;
             case SPEED -> config.speed = !config.speed;
             case MACE_KILL -> config.maceKill = !config.maceKill;
+            case SUPER_PUNCH -> config.superPunch = !config.superPunch;
             case AIR_JUMP -> config.airJump = !config.airJump;
             case FREECAM -> config.freecam = !config.freecam;
             case FULLBRIGHT -> config.fullbright = !config.fullbright;
@@ -260,8 +264,10 @@ public final class ZenithScreen extends Screen {
             case ATTRIBUTE_SWAP -> config.attributeSwap;
             case KILL_AURA -> config.killAura;
             case REACH -> config.reach;
+            case INFINITE_REACH -> config.infiniteReach;
             case SPEED -> config.speed;
             case MACE_KILL -> config.maceKill;
+            case SUPER_PUNCH -> config.superPunch;
             case AIR_JUMP -> config.airJump;
             case FREECAM -> config.freecam;
             case FULLBRIGHT -> config.fullbright;
@@ -273,7 +279,7 @@ public final class ZenithScreen extends Screen {
     private static List<Module> modules(Category c) {
         return switch (c) {
             case VISUALS -> List.of(Module.PLAYER_ESP, Module.ENTITY_OUTLINES, Module.ITEM_ESP, Module.PROJECTILE_ESP, Module.BLOCK_OUTLINES, Module.BOW_TRAJECTORY, Module.XRAY);
-            case COMBAT -> List.of(Module.CRITICALS, Module.AUTO_TOTEM, Module.ATTRIBUTE_SWAP, Module.KILL_AURA, Module.REACH, Module.MACE_KILL);
+            case COMBAT -> List.of(Module.CRITICALS, Module.AUTO_TOTEM, Module.ATTRIBUTE_SWAP, Module.KILL_AURA, Module.REACH, Module.INFINITE_REACH, Module.MACE_KILL, Module.SUPER_PUNCH);
             case MOVEMENT -> List.of(Module.FLIGHT, Module.SPEED, Module.AUTO_SPRINT, Module.NO_SLOW, Module.NO_STUN, Module.NO_FALL, Module.AIR_JUMP, Module.FREECAM);
             case HUD -> List.of(Module.FULLBRIGHT, Module.FPS, Module.COORDINATES);
             case CONFIG -> List.of();
@@ -284,7 +290,7 @@ public final class ZenithScreen extends Screen {
         case PLAYER_ESP -> "Player ESP";
             case ENTITY_OUTLINES -> "Entity ESP"; case ITEM_ESP -> "Item ESP"; case PROJECTILE_ESP -> "Projectile ESP"; case BLOCK_OUTLINES -> "Block ESP"; case BOW_TRAJECTORY -> "Trajectories";
         case XRAY -> "X-Ray"; case FLIGHT -> "Flight"; case AUTO_SPRINT -> "Auto Sprint"; case NO_SLOW -> "No Slow";
-        case NO_STUN -> "No Stun"; case NO_FALL -> "No Fall"; case CRITICALS -> "Criticals"; case AUTO_TOTEM -> "Auto Totem"; case ATTRIBUTE_SWAP -> "Attribute Swap"; case KILL_AURA -> "Kill Aura"; case REACH -> "Reach"; case SPEED -> "Speed"; case MACE_KILL -> "Mace Kill"; case AIR_JUMP -> "Air Jump"; case FREECAM -> "Freecam"; case FULLBRIGHT -> "Fullbright"; case FPS -> "FPS HUD";
+        case NO_STUN -> "No Stun"; case NO_FALL -> "No Fall"; case CRITICALS -> "Criticals"; case AUTO_TOTEM -> "Auto Totem"; case ATTRIBUTE_SWAP -> "Attribute Swap"; case KILL_AURA -> "Kill Aura"; case REACH -> "Reach"; case INFINITE_REACH -> "Infinite Reach"; case SPEED -> "Speed"; case MACE_KILL -> "Mace Kill"; case SUPER_PUNCH -> "Super Punch"; case AIR_JUMP -> "Air Jump"; case FREECAM -> "Freecam"; case FULLBRIGHT -> "Fullbright"; case FPS -> "FPS HUD";
         case COORDINATES -> "Coordinates";
     }; }
     private static String label(Category c) { return c.name().charAt(0) + c.name().substring(1).toLowerCase(); }

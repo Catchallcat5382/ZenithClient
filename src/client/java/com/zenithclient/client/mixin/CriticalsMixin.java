@@ -18,6 +18,6 @@ public abstract class CriticalsMixin {
 
     @Inject(method = "attack", at = @At("TAIL"))
     private void zenith$restoreAttributeSwap(Player player, Entity target, CallbackInfo ci) {
-        ZenithClient.afterAttack();
+        ZenithClient.afterAttack(target);
     }
 }

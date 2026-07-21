@@ -48,6 +48,7 @@ public final class ZenithConfig {
     public boolean infiniteReach = false;
     public boolean speed = false;
     public boolean maceKill = false;
+    public boolean superPunch = false;
     public boolean freecam = false;
     public int xrayOpacity = 0;
     public XrayMode xrayMode = XrayMode.ORES;
@@ -84,6 +85,7 @@ public final class ZenithConfig {
     public double reachDistance = 4.5;
     public double speedAmount = 1.5;
     public double maceKillHeight = 80.0;
+    public int superPunchPackets = 4;
     public double freecamSpeed = 1.0;
 
     // Each module has its own optional toggle key. -1 means unbound.
@@ -106,8 +108,10 @@ public final class ZenithConfig {
     public int attributeSwapKey = -1;
     public int killAuraKey = -1;
     public int reachKey = -1;
+    public int infiniteReachKey = -1;
     public int speedKey = -1;
     public int maceKillKey = -1;
+    public int superPunchKey = -1;
     public int freecamKey = -1;
 
     // Comma-separated entity type filters. Empty means use the selected category.
@@ -153,6 +157,7 @@ public final class ZenithConfig {
         reachDistance = clamp(reachDistance, 3.0, 20.0, 4.5);
         speedAmount = clamp(speedAmount, 0.1, 10.0, 1.5);
         maceKillHeight = clamp(maceKillHeight, 4.0, 200.0, 80.0);
+        superPunchPackets = (int) clamp(superPunchPackets, 2, 8, 4);
         freecamSpeed = clamp(freecamSpeed, 0.1, 10.0, 1.0);
     }
 
