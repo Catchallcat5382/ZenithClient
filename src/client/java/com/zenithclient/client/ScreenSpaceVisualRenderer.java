@@ -52,38 +52,13 @@ public final class ScreenSpaceVisualRenderer {
             if (projectile && !config.projectileEsp) continue;
             if (!player && !item && !projectile && (!config.entityHighlights || !ZenithClient.matchesEntityMode(entity))) continue;
 
-            AABB espBox = lerpedBox(entity, tickDelta).inflate(0.04);
+            AABB espBox = lerpedBox(entity, tickDelta);
             ScreenPoint point = projection.project(new Vec3((espBox.minX + espBox.maxX) * 0.5, espBox.maxY, (espBox.minZ + espBox.maxZ) * 0.5));
             if (point == null) continue;
 
             int outlineColor = player ? config.playerOutlineColor : item ? config.itemEspColor : projectile ? config.projectileEspColor : config.entityOutlineColor;
-            int fillColor = player ? config.playerFillColor : config.entityFillColor;
-            int fillOpacity = player ? config.playerFillOpacity : config.entityFillOpacity;
-            boolean fillEnabled = (player || (!item && !projectile && config.entityFill)) && fillOpacity > 0;
             boolean tracers = player ? config.playerTracers : item ? config.itemTracers : projectile ? config.projectileTracers : config.entityTracers;
             boolean nameTags = player ? config.playerNameTags : item || projectile || config.entityNameTags;
-            ZenithConfig.EspShape shape = player ? config.playerEspShape : config.entityEspShape;
-
-            if (fillEnabled) {
-                ScreenRect rect = bounds(projectCorners(projection, espBox));
-                if (rect != null && rect.width() >= 2 && rect.height() >= 2) {
-                    graphics.fill(rect.minX, rect.minY, rect.maxX + 1, rect.maxY + 1, withAlpha(fillColor, percentToAlpha(fillOpacity)));
-                }
-            }
-
-            if ((player || (!item && !projectile && config.entityOutline)) && shape != null) {
-                int thickness = player ? config.playerOutlineThickness : config.entityOutlineThickness;
-                ScreenPoint[] corners = projectCorners(projection, espBox);
-                ScreenRect rect = bounds(corners);
-                if (rect != null && rect.width() >= 2 && rect.height() >= 2) {
-                    int outline = withAlpha(outlineColor, 235);
-                    switch (shape) {
-                        case BOX_3D -> drawProjectedBox(graphics, corners, outline, Math.max(1, thickness));
-                        case BOX_2D -> drawRect(graphics, rect, outline, Math.max(1, thickness));
-                        case CORNERS -> drawCorners(graphics, rect, outline, Math.max(1, thickness));
-                    }
-                }
-            }
 
             if (tracers) {
                 ScreenPoint from = new ScreenPoint(projection.width / 2, projection.height - 2);
@@ -112,13 +87,11 @@ public final class ScreenSpaceVisualRenderer {
     private static void renderBlocks(GuiGraphicsExtractor graphics, ZenithConfig config,
                                      Projection projection, List<BlockPos> blocks) {
         int outline = withAlpha(config.blockOutlineColor, 255);
-        int effectiveOpacity = config.blockFillOpacity;
-        int fill = withAlpha(config.blockFillColor, percentToAlpha(effectiveOpacity));
         for (BlockPos pos : blocks) {
-            ScreenRect rect = projectBox(projection, new AABB(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1.0, pos.getY() + 1.0, pos.getZ() + 1.0));
+            ScreenPoint[] corners = projectCorners(projection, new AABB(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1.0, pos.getY() + 1.0, pos.getZ() + 1.0));
+            ScreenRect rect = bounds(corners);
             if (rect == null || rect.width() < 2 || rect.height() < 2) continue;
-            if (effectiveOpacity > 0) graphics.fill(rect.minX, rect.minY, rect.maxX, rect.maxY, fill);
-            drawRect(graphics, rect, outline, 1);
+            drawProjectedBox(graphics, corners, outline, 1);
         }
     }
 

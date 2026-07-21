@@ -48,15 +48,27 @@ if not "%VALID_SELECTION%"=="1" (
 )
 
 for /f "usebackq tokens=2 delims==" %%V in (`findstr /b "mod_version=" gradle.properties`) do set CURRENT_VERSION=%%V
+set CURRENT_VERSION=%CURRENT_VERSION:v=%
+set CURRENT_VERSION=%CURRENT_VERSION:V=%
 set /a NEXT_VERSION=%CURRENT_VERSION%+1
 echo.
 echo Current mod version: v%CURRENT_VERSION%
-echo Next suggested version: v%NEXT_VERSION%
-set /p BUILD_VERSION=Build as version, or press Enter to keep v%CURRENT_VERSION%: 
-if not "%BUILD_VERSION%"=="" (
-  set BUILD_VERSION=%BUILD_VERSION:v=%
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "(Get-Content 'gradle.properties') -replace '^mod_version=.*','mod_version=%BUILD_VERSION%' | Set-Content -Encoding UTF8 'gradle.properties'"
+set /p BUILD_VERSION=Build as version [v%NEXT_VERSION%]: 
+if "%BUILD_VERSION%"=="" set BUILD_VERSION=%NEXT_VERSION%
+set BUILD_VERSION=%BUILD_VERSION:v=%
+set BUILD_VERSION=%BUILD_VERSION:V=%
+
+set VALID_MOD_VERSION=1
+if "%BUILD_VERSION%"=="" set VALID_MOD_VERSION=0
+for /f "delims=0123456789" %%A in ("%BUILD_VERSION%") do set VALID_MOD_VERSION=0
+if "%VALID_MOD_VERSION%"=="0" (
+  echo.
+  echo Invalid mod version "%BUILD_VERSION%". Type a whole number like 30, or press Enter for v%NEXT_VERSION%.
+  pause
+  exit /b 1
 )
+echo Building mod version: v%BUILD_VERSION%
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "(Get-Content 'gradle.properties') -replace '^mod_version=.*','mod_version=%BUILD_VERSION%' | Set-Content -Encoding UTF8 'gradle.properties'"
 
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\build-with-gradle.ps1" "%MC_SELECTION%"
 if errorlevel 1 (

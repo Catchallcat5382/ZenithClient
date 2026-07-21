@@ -24,6 +24,7 @@ import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -44,7 +45,7 @@ public final class ZenithClient implements ClientModInitializer {
     private static boolean zenithNightVision;
     private static boolean flightWasActive;
     private static final List<BlockPos> HIGHLIGHTED_BLOCKS = new ArrayList<>();
-    private static final boolean[] KEY_STATES = new boolean[16];
+    private static final boolean[] KEY_STATES = new boolean[18];
     private static boolean jumpWasDown;
     private static boolean menuKeyWasDown;
     private static String toggleNotice = "";
@@ -54,11 +55,15 @@ public final class ZenithClient implements ClientModInitializer {
     private static int lastBlockScanRadius = -1;
     private static boolean lastXrayState = CONFIG.xray;
     private static boolean initialXrayRefreshDone;
+    private static Vec3 freecamPosition;
+    private static int restoreSwapSlot = -1;
 
     public static ZenithConfig getConfig() { return CONFIG; }
 
     @Override
     public void onInitializeClient() {
+        CONFIG.xray = false;
+        lastXrayState = false;
         KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "general"));
         openMenu = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.zenithclient.open_menu", InputConstants.Type.KEYSYM,
@@ -93,10 +98,8 @@ public final class ZenithClient implements ClientModInitializer {
 
         if (client.player == null || client.level == null) return;
         ticks++;
-        if (CONFIG.xray && !initialXrayRefreshDone) {
-            initialXrayRefreshDone = true;
-            refreshWorldRenderer();
-        }
+        updateFreecam(client);
+        if (!CONFIG.trajectoryPreview) setTrajectoryTarget(null);
         if (!CONFIG.xray) initialXrayRefreshDone = false;
 
         if (CONFIG.autoSprint && client.options.keyUp.isDown() && !client.player.isCrouching()) {
@@ -120,6 +123,29 @@ public final class ZenithClient implements ClientModInitializer {
             HIGHLIGHTED_BLOCKS.clear();
             lastBlockScanOrigin = null;
         }
+    }
+
+    private static void updateFreecam(Minecraft client) {
+        if (!CONFIG.freecam) {
+            freecamPosition = null;
+            return;
+        }
+        if (freecamPosition == null) freecamPosition = client.player.getEyePosition();
+
+        double forward = (client.options.keyUp.isDown() ? 1.0 : 0.0) - (client.options.keyDown.isDown() ? 1.0 : 0.0);
+        double right = (client.options.keyRight.isDown() ? 1.0 : 0.0) - (client.options.keyLeft.isDown() ? 1.0 : 0.0);
+        double vertical = (client.options.keyJump.isDown() ? 1.0 : 0.0) - (client.options.keyShift.isDown() ? 1.0 : 0.0);
+        double length = Math.sqrt(forward * forward + right * right + vertical * vertical);
+        if (length > 1.0) { forward /= length; right /= length; vertical /= length; }
+
+        double speed = CONFIG.freecamSpeed * (client.options.keySprint.isDown() ? 2.5 : 1.0) * 0.35;
+        double yaw = Math.toRadians(client.player.getYRot());
+        double pitch = Math.toRadians(client.player.getXRot());
+        Vec3 look = new Vec3(-Math.sin(yaw) * Math.cos(pitch), -Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)).normalize();
+        Vec3 side = new Vec3(Math.cos(yaw), 0.0, Math.sin(yaw)).normalize();
+        freecamPosition = freecamPosition.add(look.scale(forward * speed)).add(side.scale(right * speed)).add(0.0, vertical * speed, 0.0);
+        client.player.setDeltaMovement(0.0, 0.0, 0.0);
+        client.player.fallDistance = 0.0F;
     }
 
     private static void updateFullbright(Minecraft client) {
@@ -224,6 +250,7 @@ public final class ZenithClient implements ClientModInitializer {
     /** Called at the start of the vanilla attack method by CriticalsMixin. */
     public static void beforeAttack(Entity target) {
         Minecraft client = Minecraft.getInstance();
+        prepareAttributeSwap(client);
         if (!CONFIG.criticals || client.player == null || target == null) return;
         if (!client.player.onGround() || client.player.isInWater() || client.player.isInLava()
                 || client.player.isCrouching() || client.player.getAbilities().flying) return;
@@ -236,6 +263,63 @@ public final class ZenithClient implements ClientModInitializer {
         sendMovementPacketReflectively("Pos", x, y + 0.0625, z, false);
         sendMovementPacketReflectively("Pos", x, y, z, false);
         client.player.fallDistance = 0.1F;
+    }
+
+    /** Called at the end of the vanilla attack method by CriticalsMixin. */
+    public static void afterAttack() {
+        Minecraft client = Minecraft.getInstance();
+        restoreAttributeSwap(client);
+    }
+
+    private static void prepareAttributeSwap(Minecraft client) {
+        restoreSwapSlot = -1;
+        if (!CONFIG.attributeSwap || client.player == null || client.player.connection == null) return;
+        int wanted = Math.max(0, Math.min(8, CONFIG.attributeSwapSlot - 1));
+        int current = selectedHotbarSlot(client);
+        if (wanted == current) return;
+        restoreSwapSlot = current;
+        setSelectedHotbarSlot(client, wanted);
+        client.player.connection.send(new ServerboundSetCarriedItemPacket(wanted));
+    }
+
+    private static void restoreAttributeSwap(Minecraft client) {
+        if (restoreSwapSlot < 0 || client.player == null || client.player.connection == null) {
+            restoreSwapSlot = -1;
+            return;
+        }
+        int slot = restoreSwapSlot;
+        restoreSwapSlot = -1;
+        setSelectedHotbarSlot(client, slot);
+        client.player.connection.send(new ServerboundSetCarriedItemPacket(slot));
+    }
+
+    private static int selectedHotbarSlot(Minecraft client) {
+        Object inventory = client.player.getInventory();
+        try {
+            return (int) inventory.getClass().getMethod("getSelectedSlot").invoke(inventory);
+        } catch (ReflectiveOperationException ignored) {
+            try {
+                java.lang.reflect.Field field = inventory.getClass().getField("selected");
+                return field.getInt(inventory);
+            } catch (ReflectiveOperationException ignoredAgain) {
+                return 0;
+            }
+        }
+    }
+
+    private static void setSelectedHotbarSlot(Minecraft client, int slot) {
+        Object inventory = client.player.getInventory();
+        try {
+            inventory.getClass().getMethod("setSelectedSlot", int.class).invoke(inventory, slot);
+            return;
+        } catch (ReflectiveOperationException ignored) {
+            try {
+                java.lang.reflect.Field field = inventory.getClass().getField("selected");
+                field.setInt(inventory, slot);
+            } catch (ReflectiveOperationException ignoredAgain) {
+                // Server packet still tells the server which hotbar slot to use.
+            }
+        }
     }
 
     /**
@@ -299,7 +383,8 @@ public final class ZenithClient implements ClientModInitializer {
                 CONFIG.playerEspKey, CONFIG.entityHighlightsKey, CONFIG.blockHighlightsKey, CONFIG.trajectoryPreviewKey,
                 CONFIG.flightKey, CONFIG.autoSprintKey, CONFIG.fullbrightKey,
                 CONFIG.showFpsKey, CONFIG.showCoordinatesKey, CONFIG.xrayKey,
-                CONFIG.noSlowKey, CONFIG.noStunKey, CONFIG.noFallKey, CONFIG.criticalsKey, CONFIG.autoTotemKey, CONFIG.airJumpKey
+                CONFIG.noSlowKey, CONFIG.noStunKey, CONFIG.noFallKey, CONFIG.criticalsKey, CONFIG.autoTotemKey,
+                CONFIG.attributeSwapKey, CONFIG.airJumpKey, CONFIG.freecamKey
         };
 
         for (int i = 0; i < keys.length; i++) {
@@ -326,13 +411,16 @@ public final class ZenithClient implements ClientModInitializer {
             case 12 -> CONFIG.noFall = !CONFIG.noFall;
             case 13 -> CONFIG.criticals = !CONFIG.criticals;
             case 14 -> CONFIG.autoTotem = !CONFIG.autoTotem;
-            case 15 -> CONFIG.airJump = !CONFIG.airJump;
+            case 15 -> CONFIG.attributeSwap = !CONFIG.attributeSwap;
+            case 16 -> CONFIG.airJump = !CONFIG.airJump;
+            case 17 -> CONFIG.freecam = !CONFIG.freecam;
             default -> { return; }
         }
         CONFIG.save();
         sendToggleMessage(index);
         if (index == 4 && !CONFIG.flight) stopFlightMotion();
         if (index == 9) refreshWorldRenderer();
+        if (index == 17 && !CONFIG.freecam) freecamPosition = null;
     }
 
     public static void refreshWorldRenderer() {
@@ -355,8 +443,12 @@ public final class ZenithClient implements ClientModInitializer {
                 }
                 method.invoke(client.levelRenderer);
                 refreshed = true;
+                break;
             } catch (ReflectiveOperationException ignored) {
                 // Try the next mapped method name.
+            } catch (RuntimeException ignored) {
+                // Keep X-Ray toggles from taking down the client if a renderer
+                // refresh path is temporarily unsafe on a specific version.
             }
         }
         if (refreshed) return;
@@ -407,6 +499,113 @@ public final class ZenithClient implements ClientModInitializer {
         }
     }
 
+    public static boolean handleChatCommand(String message) {
+        if (message == null || !message.startsWith(".")) return false;
+        String[] parts = message.trim().split("\\s+");
+        String command = parts[0].toLowerCase(Locale.ROOT);
+        if (!command.equals(".autovaultclip")) return false;
+        String mode = parts.length >= 2 ? parts[1].toLowerCase(Locale.ROOT) : "down";
+        if (!mode.equals("down") && !mode.equals("up") && !mode.equals("highest")) {
+            warn("Usage: .autovaultclip down | up | highest");
+            return true;
+        }
+        autoVaultClip(mode);
+        return true;
+    }
+
+    private static void autoVaultClip(String mode) {
+        Minecraft client = Minecraft.getInstance();
+        if (client.player == null || client.level == null) return;
+        BlockPos target = switch (mode) {
+            case "up" -> findClipSpot(true, false);
+            case "highest" -> findClipSpot(true, true);
+            default -> findClipSpot(false, false);
+        };
+        if (target == null) {
+            warn(mode.equals("down") ? "No safe block level below you. Not clipping into the void." : "No safe block level found.");
+            return;
+        }
+        double x = client.player.getX();
+        double y = target.getY();
+        double z = client.player.getZ();
+        sendMovementPacketReflectively("Pos", x, y, z, client.player.onGround());
+        client.player.setPos(x, y, z);
+        warn("AutoVaultClip moved " + mode + " to Y " + target.getY() + ".");
+    }
+
+    private static BlockPos findClipSpot(boolean upward, boolean highest) {
+        Minecraft client = Minecraft.getInstance();
+        BlockPos base = client.player.blockPosition();
+        int minY = levelMinY(client) + 1;
+        int maxY = levelMaxY(client) - 2;
+        if (highest) {
+            for (int y = maxY; y > base.getY(); y--) {
+                BlockPos pos = new BlockPos(base.getX(), y, base.getZ());
+                if (safeStandingSpot(pos)) return pos;
+            }
+            return null;
+        }
+        if (upward) {
+            for (int y = base.getY() + 2; y <= maxY; y++) {
+                BlockPos pos = new BlockPos(base.getX(), y, base.getZ());
+                if (safeStandingSpot(pos)) return pos;
+            }
+            return null;
+        }
+        for (int y = base.getY() - 2; y >= minY; y--) {
+            BlockPos pos = new BlockPos(base.getX(), y, base.getZ());
+            if (safeStandingSpot(pos)) return pos;
+        }
+        return null;
+    }
+
+    private static boolean safeStandingSpot(BlockPos feet) {
+        Minecraft client = Minecraft.getInstance();
+        if (client.level == null) return false;
+        BlockPos below = feet.below();
+        return client.level.getBlockState(feet).isAir()
+                && client.level.getBlockState(feet.above()).isAir()
+                && !client.level.getBlockState(below).getCollisionShape(client.level, below).isEmpty();
+    }
+
+    private static int levelMinY(Minecraft client) {
+        try {
+            return (int) client.level.getClass().getMethod("getMinY").invoke(client.level);
+        } catch (ReflectiveOperationException ignored) {
+            try {
+                return (int) client.level.getClass().getMethod("getMinBuildHeight").invoke(client.level);
+            } catch (ReflectiveOperationException ignoredAgain) {
+                return -64;
+            }
+        }
+    }
+
+    private static int levelMaxY(Minecraft client) {
+        try {
+            return (int) client.level.getClass().getMethod("getMaxY").invoke(client.level);
+        } catch (ReflectiveOperationException ignored) {
+            try {
+                return (int) client.level.getClass().getMethod("getMaxBuildHeight").invoke(client.level);
+            } catch (ReflectiveOperationException ignoredAgain) {
+                return 320;
+            }
+        }
+    }
+
+    public static boolean isFreecamActive() {
+        return CONFIG.freecam && freecamPosition != null;
+    }
+
+    public static Vec3 freecamPosition() {
+        return freecamPosition;
+    }
+
+    private static void warn(String text) {
+        Minecraft client = Minecraft.getInstance();
+        if (client.player == null) return;
+        client.player.sendSystemMessage(net.minecraft.network.chat.Component.literal("[ZenithClient] " + text));
+    }
+
     public static void setTrajectoryTarget(Entity entity) {
         trajectoryTarget = entity;
     }
@@ -425,7 +624,12 @@ public final class ZenithClient implements ClientModInitializer {
         return CONFIG.entityHighlights && matchesEntityMode(entity);
     }
 
+    public static boolean isEspControllingGlow() {
+        return CONFIG.playerEsp || CONFIG.entityHighlights || CONFIG.itemEsp || CONFIG.projectileEsp || CONFIG.trajectoryPreview;
+    }
+
     public static int espColor(Entity entity) {
+        if (isTrajectoryTarget(entity)) return CONFIG.trajectoryColor & 0xFFFFFF;
         if (!shouldGlowEsp(entity)) return -1;
         if (entity instanceof Player) return CONFIG.playerOutlineColor & 0xFFFFFF;
         if (entity instanceof ItemEntity) return CONFIG.itemEspColor & 0xFFFFFF;
@@ -561,7 +765,9 @@ public final class ZenithClient implements ClientModInitializer {
             case 12 -> { name = "No Fall"; enabled = CONFIG.noFall; }
             case 13 -> { name = "Criticals"; enabled = CONFIG.criticals; }
             case 14 -> { name = "Auto Totem"; enabled = CONFIG.autoTotem; }
-            case 15 -> { name = "Air Jump"; enabled = CONFIG.airJump; }
+            case 15 -> { name = "Attribute Swap"; enabled = CONFIG.attributeSwap; }
+            case 16 -> { name = "Air Jump"; enabled = CONFIG.airJump; }
+            case 17 -> { name = "Freecam"; enabled = CONFIG.freecam; }
             default -> { return; }
         }
         net.minecraft.network.chat.MutableComponent message = net.minecraft.network.chat.Component.literal("[")

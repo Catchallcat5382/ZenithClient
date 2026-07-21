@@ -42,6 +42,8 @@ public final class ZenithConfig {
     public boolean criticals = false;
     public boolean autoTotem = false;
     public boolean airJump = false;
+    public boolean attributeSwap = false;
+    public boolean freecam = false;
     public int xrayOpacity = 0;
     public XrayMode xrayMode = XrayMode.ORES;
     public boolean chatToggleMessages = true;
@@ -72,6 +74,8 @@ public final class ZenithConfig {
     public double flightSpeed = 1.0;
     public double flightVerticalSpeed = 1.0;
     public double flightSprintMultiplier = 2.0;
+    public int attributeSwapSlot = 1;
+    public double freecamSpeed = 1.0;
 
     // Each module has its own optional toggle key. -1 means unbound.
     public int entityHighlightsKey = GLFW.GLFW_KEY_H;
@@ -90,6 +94,8 @@ public final class ZenithConfig {
     public int criticalsKey = -1;
     public int autoTotemKey = -1;
     public int airJumpKey = -1;
+    public int attributeSwapKey = -1;
+    public int freecamKey = -1;
 
     // Comma-separated entity type filters. Empty means use the selected category.
     public String entitySearch = "";
@@ -126,6 +132,8 @@ public final class ZenithConfig {
         if (playerEspShape == null) playerEspShape = EspShape.BOX_3D;
         if (entityEspShape == null) entityEspShape = EspShape.BOX_3D;
         if (xrayMode == null) xrayMode = XrayMode.ORES;
+        attributeSwapSlot = (int) clamp(attributeSwapSlot, 1, 9, 1);
+        freecamSpeed = clamp(freecamSpeed, 0.1, 10.0, 1.0);
     }
 
     private static double clamp(double value, double min, double max, double fallback) {

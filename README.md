@@ -17,11 +17,13 @@ ZenithClient is a client-side Fabric utility mod for Minecraft 26.2 built with J
 - Block ESP: configurable block group, color, fill opacity, radius, and cached low-lag scanning.
 - Trajectories: projectile path preview with quality, color, thickness, and start-distance controls.
 - X-Ray: safe chunk-rebuild toggle that shows selected valuable blocks while hiding non-target block geometry.
+- Freecam: independent camera movement with configurable speed.
 
 ### Combat
 
 - Criticals.
 - Auto Totem: refills the offhand with a totem from inventory when one is available.
+- Attribute Swap: temporarily swaps to a selected hotbar slot while attacking, then swaps back.
 
 ### Movement
 
@@ -44,11 +46,13 @@ Press Right Shift during gameplay to open ZenithClient. Module keybinds only fir
 
 Right-click a module card to open its settings. Numeric settings support both dragging the slider and typing an exact value.
 
+Chat commands start with `.`. `.autovaultclip down`, `.autovaultclip up`, and `.autovaultclip highest` move to the next safe block level in that direction; the down mode refuses to clip into the void.
+
 ## Build
 
 1. Install JDK 25.
 2. Run `build.bat`, choose the mod version to build, then type `all` for every supported Minecraft version or a specific version such as `1.20.1`.
-3. The newest jars are copied to `releases/latest/`.
+3. The newest highest-Minecraft-version jar is copied to `releases/latest/`.
 4. Versioned jars are copied to `releases/v<version>/<minecraft-version>/`.
 5. The current jar for each Minecraft version is mirrored into `minecraft_versions/<minecraft-version>/`.
 
@@ -57,5 +61,5 @@ Right-click a module card to open its settings. Numeric settings support both dr
 ## Git and Releases
 
 - `push_changes.bat` commits local changes and pushes `main`.
-- `release_version.bat` shows the current version, defaults to the next version, asks for `all` or a supported Minecraft version, builds the jar, commits, tags the release as `v<version>-all` or `v<version>-mc<version>`, pushes it, and uploads the matching jar assets.
+- `release_version.bat` shows the current version, defaults to the next version, asks for `all` or a supported Minecraft version, builds the jar, commits, tags the release as `v<version>-all` or `v<version>-mc<version>`, pushes it, and uploads the matching jar assets from `minecraft_versions/`.
 - Supported Minecraft versions are listed in `minecraft_build_versions.csv`. The script will stop instead of pretending to build an older version that the current source tree cannot support.

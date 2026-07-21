@@ -14,6 +14,8 @@ if not exist ".git" (
 )
 
 for /f "usebackq tokens=2 delims==" %%V in (`findstr /b "mod_version=" gradle.properties`) do set CURRENT_VERSION=%%V
+set CURRENT_VERSION=%CURRENT_VERSION:v=%
+set CURRENT_VERSION=%CURRENT_VERSION:V=%
 set /a NEXT_VERSION=%CURRENT_VERSION%+1
 
 set SUPPORTED=
@@ -39,9 +41,18 @@ if /i "%2"=="--force" (
 )
 if /i "%3"=="--force" set FORCE_RELEASE=1
 
-if "%NEW_VERSION%"=="" set /p NEW_VERSION=New mod version, or press Enter for v%NEXT_VERSION%: 
+if "%NEW_VERSION%"=="" set /p NEW_VERSION=New mod version [v%NEXT_VERSION%]: 
 if "%NEW_VERSION%"=="" set NEW_VERSION=%NEXT_VERSION%
 set NEW_VERSION=%NEW_VERSION:v=%
+set NEW_VERSION=%NEW_VERSION:V=%
+
+set VALID_MOD_VERSION=1
+if "%NEW_VERSION%"=="" set VALID_MOD_VERSION=0
+for /f "delims=0123456789" %%A in ("%NEW_VERSION%") do set VALID_MOD_VERSION=0
+if "%VALID_MOD_VERSION%"=="0" (
+  echo Invalid mod version "%NEW_VERSION%". Type a whole number like 31, or press Enter for v%NEXT_VERSION%.
+  exit /b 1
+)
 
 if "%NEW_VERSION%"=="%CURRENT_VERSION%" (
   echo Refusing to release v%NEW_VERSION% because it is already the current version.
@@ -90,14 +101,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "(Get-Content gradle.prop
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\build-with-gradle.ps1" %MC_SELECTION%
 if errorlevel 1 exit /b 1
 
-dir /b "releases\v%NEW_VERSION%\*.jar" >nul 2>nul
-if errorlevel 1 dir /s /b "releases\v%NEW_VERSION%\*.jar" >nul 2>nul
-if errorlevel 1 (
-  echo No release jars found in releases\v%NEW_VERSION%.
+set FOUND_RELEASE_JAR=0
+if /i "%MC_SELECTION%"=="all" (
+  for /r "minecraft_versions" %%J in (*v%NEW_VERSION%-*.jar) do set FOUND_RELEASE_JAR=1
+) else (
+  for %%S in (%MC_SELECTION:,= %) do for /r "minecraft_versions\%%S" %%J in (*v%NEW_VERSION%-*.jar) do set FOUND_RELEASE_JAR=1
+)
+if "%FOUND_RELEASE_JAR%"=="0" (
+  echo No v%NEW_VERSION% release jars found in minecraft_versions for %MC_SELECTION%.
   exit /b 1
 )
 
-git add .
+git add README.md build.bat release_version.bat gradle.properties minecraft_build_versions.csv tools src src/main/resources minecraft_versions releases/latest "releases/v%NEW_VERSION%"
 git diff --cached --quiet
 if errorlevel 1 (
   git commit -m "Release v%NEW_VERSION% for %RELEASE_SUFFIX%"
@@ -126,7 +141,11 @@ if not errorlevel 1 (
   gh release view "%RELEASE_TAG%" >nul 2>nul
   if not errorlevel 1 (
     if "%FORCE_RELEASE%"=="1" (
-      for /r "releases\v%NEW_VERSION%" %%J in (*.jar) do gh release upload "%RELEASE_TAG%" "%%~fJ" --clobber
+      if /i "%MC_SELECTION%"=="all" (
+        for /r "minecraft_versions" %%J in (*v%NEW_VERSION%-*.jar) do gh release upload "%RELEASE_TAG%" "%%~fJ" --clobber
+      ) else (
+        for %%S in (%MC_SELECTION:,= %) do for /r "minecraft_versions\%%S" %%J in (*v%NEW_VERSION%-*.jar) do gh release upload "%RELEASE_TAG%" "%%~fJ" --clobber
+      )
     ) else (
       echo Refusing to overwrite existing GitHub release %RELEASE_TAG%.
       exit /b 1
@@ -134,12 +153,23 @@ if not errorlevel 1 (
   ) else (
     set NOTES=ZenithClient v%NEW_VERSION% for %RELEASE_SUFFIX%. Only successfully compiled Minecraft jars are attached.
     set CREATED_RELEASE=0
-    for /r "releases\v%NEW_VERSION%" %%J in (*.jar) do (
-      if "!CREATED_RELEASE!"=="0" (
-        gh release create "%RELEASE_TAG%" "%%~fJ" --title "ZenithClient v%NEW_VERSION% - %RELEASE_SUFFIX%" --notes "!NOTES!"
-        set CREATED_RELEASE=1
-      ) else (
-        gh release upload "%RELEASE_TAG%" "%%~fJ" --clobber
+    if /i "%MC_SELECTION%"=="all" (
+      for /r "minecraft_versions" %%J in (*v%NEW_VERSION%-*.jar) do (
+        if "!CREATED_RELEASE!"=="0" (
+          gh release create "%RELEASE_TAG%" "%%~fJ" --title "ZenithClient v%NEW_VERSION% - %RELEASE_SUFFIX%" --notes "!NOTES!"
+          set CREATED_RELEASE=1
+        ) else (
+          gh release upload "%RELEASE_TAG%" "%%~fJ" --clobber
+        )
+      )
+    ) else (
+      for %%S in (%MC_SELECTION:,= %) do for /r "minecraft_versions\%%S" %%J in (*v%NEW_VERSION%-*.jar) do (
+        if "!CREATED_RELEASE!"=="0" (
+          gh release create "%RELEASE_TAG%" "%%~fJ" --title "ZenithClient v%NEW_VERSION% - %RELEASE_SUFFIX%" --notes "!NOTES!"
+          set CREATED_RELEASE=1
+        ) else (
+          gh release upload "%RELEASE_TAG%" "%%~fJ" --clobber
+        )
       )
     )
   )

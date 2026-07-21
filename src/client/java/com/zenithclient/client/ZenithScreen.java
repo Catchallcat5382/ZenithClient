@@ -15,8 +15,8 @@ public final class ZenithScreen extends Screen {
     private static final Identifier LOGO = Identifier.fromNamespaceAndPath(ZenithClient.MOD_ID, "icon.png");
 
     private enum Category { VISUALS, COMBAT, MOVEMENT, HUD, CONFIG }
-    private enum Module { PLAYER_ESP, ENTITY_OUTLINES, ITEM_ESP, PROJECTILE_ESP, BLOCK_OUTLINES, BOW_TRAJECTORY, XRAY, FLIGHT, AUTO_SPRINT, NO_SLOW, NO_STUN, NO_FALL, CRITICALS, AUTO_TOTEM, AIR_JUMP, FULLBRIGHT, FPS, COORDINATES }
-    private enum HitType { TAB, MODULE, DONE, THEME_ACCENT, PANEL_OPACITY, BUTTON_OPACITY, RESET_THEME }
+    private enum Module { PLAYER_ESP, ENTITY_OUTLINES, ITEM_ESP, PROJECTILE_ESP, BLOCK_OUTLINES, BOW_TRAJECTORY, XRAY, FLIGHT, AUTO_SPRINT, NO_SLOW, NO_STUN, NO_FALL, CRITICALS, AUTO_TOTEM, ATTRIBUTE_SWAP, AIR_JUMP, FREECAM, FULLBRIGHT, FPS, COORDINATES }
+    private enum HitType { TAB, MODULE, DONE, THEME_ACCENT, PANEL_OPACITY, BUTTON_OPACITY, CHAT_MESSAGES, RESET_THEME }
 
     private record Hitbox(HitType type, int value, int x, int y, int width, int height) {
         boolean contains(double mx, double my) { return mx >= x && mx < x + width && my >= y && my < y + height; }
@@ -132,7 +132,8 @@ public final class ZenithScreen extends Screen {
         configButton(g, mx, my, HitType.THEME_ACCENT, x, y, bw, "Accent", colorName(config.uiAccentColor), accent);
         configButton(g, mx, my, HitType.PANEL_OPACITY, x + bw + gap, y, bw, "Panel opacity", config.uiPanelOpacity + "%", accent);
         configButton(g, mx, my, HitType.BUTTON_OPACITY, x, y + 48, bw, "Button opacity", config.uiButtonOpacity + "%", accent);
-        configButton(g, mx, my, HitType.RESET_THEME, x + bw + gap, y + 48, bw, "Theme", "Reset", accent);
+        configButton(g, mx, my, HitType.CHAT_MESSAGES, x + bw + gap, y + 48, bw, "Chat messages", config.chatToggleMessages ? "ON" : "OFF", accent);
+        configButton(g, mx, my, HitType.RESET_THEME, x, y + 96, bw, "Theme", "Reset", accent);
     }
 
     private void configButton(GuiGraphicsExtractor g, int mx, int my, HitType type, int x, int y, int w, String title, String value, int accent) {
@@ -167,6 +168,7 @@ public final class ZenithScreen extends Screen {
                 case THEME_ACCENT -> config.uiAccentColor = nextThemeColor(config.uiAccentColor);
                 case PANEL_OPACITY -> { config.uiPanelOpacity += 5; if (config.uiPanelOpacity > 100) config.uiPanelOpacity = 70; }
                 case BUTTON_OPACITY -> { config.uiButtonOpacity += 5; if (config.uiButtonOpacity > 100) config.uiButtonOpacity = 55; }
+                case CHAT_MESSAGES -> config.chatToggleMessages = !config.chatToggleMessages;
                 case RESET_THEME -> { config.uiAccentColor = 0xFFFF6B35; config.uiPanelColor = 0xFF151515; config.uiSidebarColor = 0xFF1D1D1D; config.uiPanelOpacity = 94; config.uiButtonOpacity = 88; }
                 default -> { }
             }
@@ -192,7 +194,9 @@ public final class ZenithScreen extends Screen {
             case NO_FALL -> ModuleSettingsScreen.Type.NO_FALL;
             case CRITICALS -> ModuleSettingsScreen.Type.CRITICALS;
             case AUTO_TOTEM -> ModuleSettingsScreen.Type.AUTO_TOTEM;
+            case ATTRIBUTE_SWAP -> ModuleSettingsScreen.Type.ATTRIBUTE_SWAP;
             case AIR_JUMP -> ModuleSettingsScreen.Type.AIR_JUMP;
+            case FREECAM -> ModuleSettingsScreen.Type.FREECAM;
             case FULLBRIGHT -> ModuleSettingsScreen.Type.FULLBRIGHT;
             case FPS -> ModuleSettingsScreen.Type.FPS;
             case COORDINATES -> ModuleSettingsScreen.Type.COORDINATES;
@@ -217,7 +221,9 @@ public final class ZenithScreen extends Screen {
             case NO_FALL -> config.noFall = !config.noFall;
             case CRITICALS -> config.criticals = !config.criticals;
             case AUTO_TOTEM -> config.autoTotem = !config.autoTotem;
+            case ATTRIBUTE_SWAP -> config.attributeSwap = !config.attributeSwap;
             case AIR_JUMP -> config.airJump = !config.airJump;
+            case FREECAM -> config.freecam = !config.freecam;
             case FULLBRIGHT -> config.fullbright = !config.fullbright;
             case FPS -> config.showFps = !config.showFps;
             case COORDINATES -> config.showCoordinates = !config.showCoordinates;
@@ -243,7 +249,9 @@ public final class ZenithScreen extends Screen {
             case NO_FALL -> config.noFall;
             case CRITICALS -> config.criticals;
             case AUTO_TOTEM -> config.autoTotem;
+            case ATTRIBUTE_SWAP -> config.attributeSwap;
             case AIR_JUMP -> config.airJump;
+            case FREECAM -> config.freecam;
             case FULLBRIGHT -> config.fullbright;
             case FPS -> config.showFps;
             case COORDINATES -> config.showCoordinates;
@@ -253,8 +261,8 @@ public final class ZenithScreen extends Screen {
     private static List<Module> modules(Category c) {
         return switch (c) {
             case VISUALS -> List.of(Module.PLAYER_ESP, Module.ENTITY_OUTLINES, Module.ITEM_ESP, Module.PROJECTILE_ESP, Module.BLOCK_OUTLINES, Module.BOW_TRAJECTORY, Module.XRAY);
-            case COMBAT -> List.of(Module.CRITICALS, Module.AUTO_TOTEM);
-            case MOVEMENT -> List.of(Module.FLIGHT, Module.AUTO_SPRINT, Module.NO_SLOW, Module.NO_STUN, Module.NO_FALL, Module.AIR_JUMP);
+            case COMBAT -> List.of(Module.CRITICALS, Module.AUTO_TOTEM, Module.ATTRIBUTE_SWAP);
+            case MOVEMENT -> List.of(Module.FLIGHT, Module.AUTO_SPRINT, Module.NO_SLOW, Module.NO_STUN, Module.NO_FALL, Module.AIR_JUMP, Module.FREECAM);
             case HUD -> List.of(Module.FULLBRIGHT, Module.FPS, Module.COORDINATES);
             case CONFIG -> List.of();
         };
@@ -264,7 +272,7 @@ public final class ZenithScreen extends Screen {
         case PLAYER_ESP -> "Player ESP";
             case ENTITY_OUTLINES -> "Entity ESP"; case ITEM_ESP -> "Item ESP"; case PROJECTILE_ESP -> "Projectile ESP"; case BLOCK_OUTLINES -> "Block ESP"; case BOW_TRAJECTORY -> "Trajectories";
         case XRAY -> "X-Ray"; case FLIGHT -> "Flight"; case AUTO_SPRINT -> "Auto Sprint"; case NO_SLOW -> "No Slow";
-        case NO_STUN -> "No Stun"; case NO_FALL -> "No Fall"; case CRITICALS -> "Criticals"; case AUTO_TOTEM -> "Auto Totem"; case AIR_JUMP -> "Air Jump"; case FULLBRIGHT -> "Fullbright"; case FPS -> "FPS HUD";
+        case NO_STUN -> "No Stun"; case NO_FALL -> "No Fall"; case CRITICALS -> "Criticals"; case AUTO_TOTEM -> "Auto Totem"; case ATTRIBUTE_SWAP -> "Attribute Swap"; case AIR_JUMP -> "Air Jump"; case FREECAM -> "Freecam"; case FULLBRIGHT -> "Fullbright"; case FPS -> "FPS HUD";
         case COORDINATES -> "Coordinates";
     }; }
     private static String label(Category c) { return c.name().charAt(0) + c.name().substring(1).toLowerCase(); }

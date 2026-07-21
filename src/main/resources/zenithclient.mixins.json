@@ -9,7 +9,9 @@
     "CriticalsMixin",
     "ServerboundMovePlayerPacketAccessor",
     "ConnectionMixin",
-    "EntityGlowMixin"
+    "EntityGlowMixin",
+    "ChatCommandMixin",
+    "CameraFreecamMixin"
   ],
   "injectors": {
     "defaultRequire": 1

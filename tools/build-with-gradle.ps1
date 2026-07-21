@@ -98,6 +98,40 @@ public abstract class ModelBlockRendererMixin {
 '@
     }
 
+    if ($RelativePath -like '*\mixin\ChatCommandMixin.java' -and $script:LegacyMinecraftVersion -in @('1.20.1', '1.20.4')) {
+        return @'
+package com.zenithclient.client.mixin;
+
+import com.zenithclient.client.ZenithClient;
+import net.minecraft.client.gui.screens.ChatScreen;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+@Mixin(ChatScreen.class)
+public abstract class ChatCommandMixin {
+    @Inject(method = "handleChatInput", at = @At("HEAD"), cancellable = true)
+    private void zenith$handleDotCommand(String message, boolean addToHistory, CallbackInfoReturnable<Boolean> cir) {
+        if (ZenithClient.handleChatCommand(message)) cir.setReturnValue(true);
+    }
+}
+'@
+    }
+
+    if ($RelativePath -like '*\mixin\CameraFreecamMixin.java' -and ($script:LegacyMinecraftVersion -like '1.20.*' -or $script:LegacyMinecraftVersion -like '1.21.*')) {
+        return @'
+package com.zenithclient.client.mixin;
+
+import net.minecraft.client.Camera;
+import org.spongepowered.asm.mixin.Mixin;
+
+@Mixin(Camera.class)
+public abstract class CameraFreecamMixin {
+}
+'@
+    }
+
     if ($RelativePath -like '*\mixin\WebBlockNoSlowMixin.java') {
         return @'
 package com.zenithclient.client.mixin;
@@ -312,6 +346,7 @@ if ($MinecraftSelection -eq 'all') {
 
 $successful = New-Object System.Collections.Generic.List[string]
 $failed = New-Object System.Collections.Generic.List[string]
+$latestCandidate = $null
 $targetCount = @($targets).Count
 $targetNumber = 0
 
@@ -377,14 +412,13 @@ try {
         foreach ($jar in $jars) {
             $mcJarPath = Join-Path $mcVersionDir $jar.Name
             $releaseJarPath = Join-Path $releaseMcDir $jar.Name
-            $latestJarPath = Join-Path $latestDir $jar.Name
-            Get-ChildItem $latestDir -Filter "*-mc$mc.jar" -Force -ErrorAction SilentlyContinue | Remove-Item -Force
             Copy-Item $jar.FullName $mcJarPath -Force
             Copy-Item $jar.FullName $releaseJarPath -Force
-            Copy-Item $jar.FullName $latestJarPath -Force
             Write-Host "Created: $mcJarPath"
             Write-Host "Release copy: $releaseJarPath"
-            Write-Host "Latest copy: $latestJarPath"
+            if ($null -eq $latestCandidate) {
+                $latestCandidate = $mcJarPath
+            }
         }
 
         $successful.Add($mc)
@@ -394,6 +428,15 @@ try {
     Write-Properties -Lines $originalProperties
     Set-Content -Path $buildGradlePath -Value $originalBuildGradle -Encoding ASCII
     Pop-Location
+}
+
+if ($latestCandidate) {
+    Write-Host ''
+    Write-Host "Refreshing releases/latest with the highest successful Minecraft target only."
+    Get-ChildItem $latestDir -Filter '*.jar' -Force -ErrorAction SilentlyContinue | Remove-Item -Force
+    $latestJarPath = Join-Path $latestDir (Split-Path -Leaf $latestCandidate)
+    Copy-Item $latestCandidate $latestJarPath -Force
+    Write-Host "Latest copy: $latestJarPath"
 }
 
 Write-Host ''

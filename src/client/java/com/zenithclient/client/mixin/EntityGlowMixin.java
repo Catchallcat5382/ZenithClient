@@ -17,6 +17,8 @@ public abstract class EntityGlowMixin {
         if (client.player == null || client.level == null || self == client.player) return;
         if (ZenithClient.shouldGlowEsp(self) || ZenithClient.isTrajectoryTarget(self)) {
             cir.setReturnValue(true);
+        } else if (ZenithClient.isEspControllingGlow()) {
+            cir.setReturnValue(false);
         }
     }
 

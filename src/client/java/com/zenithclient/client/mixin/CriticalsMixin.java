@@ -15,4 +15,9 @@ public abstract class CriticalsMixin {
     private void zenith$prepareCritical(Player player, Entity target, CallbackInfo ci) {
         ZenithClient.beforeAttack(target);
     }
+
+    @Inject(method = "attack", at = @At("TAIL"))
+    private void zenith$restoreAttributeSwap(Player player, Entity target, CallbackInfo ci) {
+        ZenithClient.afterAttack();
+    }
 }

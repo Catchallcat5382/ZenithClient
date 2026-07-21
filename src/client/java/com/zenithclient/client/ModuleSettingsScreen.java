@@ -13,7 +13,7 @@ import java.util.List;
 
 /** Custom-drawn per-module settings screen. Right-click a module card to open it. */
 public final class ModuleSettingsScreen extends Screen {
-    public enum Type { PLAYER, ENTITY, ITEM, PROJECTILE, BLOCKS, TRAJECTORY, XRAY, FLIGHT, AUTO_SPRINT, NO_SLOW, NO_STUN, NO_FALL, CRITICALS, AUTO_TOTEM, AIR_JUMP, FULLBRIGHT, FPS, COORDINATES }
+    public enum Type { PLAYER, ENTITY, ITEM, PROJECTILE, BLOCKS, TRAJECTORY, XRAY, FLIGHT, AUTO_SPRINT, NO_SLOW, NO_STUN, NO_FALL, CRITICALS, AUTO_TOTEM, ATTRIBUTE_SWAP, AIR_JUMP, FREECAM, FULLBRIGHT, FPS, COORDINATES }
     private enum Action { KEYBIND, OPTION, BACK }
     private record Hit(Action action, int index, int x, int y, int w, int h) {
         boolean contains(double mx, double my) { return mx >= x && mx < x + w && my >= y && my < y + h; }
@@ -287,6 +287,8 @@ public final class ModuleSettingsScreen extends Screen {
             case TRAJECTORY -> switch (index) { case 0 -> new Numeric(1, 12, 1, true); case 2 -> new Numeric(1, 6, 1, true); case 3 -> new Numeric(0, 8, 0.05, false); default -> null; };
             case XRAY -> null;
             case FLIGHT -> switch (index) { case 0, 1 -> new Numeric(0.1, 10, 0.1, false); case 2 -> new Numeric(1, 4, 0.1, false); default -> null; };
+            case ATTRIBUTE_SWAP -> switch (index) { case 1 -> new Numeric(1, 9, 1, true); default -> null; };
+            case FREECAM -> switch (index) { case 1 -> new Numeric(0.1, 10, 0.1, false); default -> null; };
             default -> null;
         };
     }
@@ -300,6 +302,8 @@ public final class ModuleSettingsScreen extends Screen {
             case TRAJECTORY -> switch (index) { case 0 -> config.lineDensity; case 2 -> config.trajectoryThickness; case 3 -> config.trajectoryStartDistance; default -> 0; };
             case XRAY -> 0;
             case FLIGHT -> switch (index) { case 0 -> config.flightSpeed; case 1 -> config.flightVerticalSpeed; case 2 -> config.flightSprintMultiplier; default -> 0; };
+            case ATTRIBUTE_SWAP -> index == 1 ? config.attributeSwapSlot : 0;
+            case FREECAM -> index == 1 ? config.freecamSpeed : 0;
             default -> 0;
         };
     }
@@ -318,6 +322,8 @@ public final class ModuleSettingsScreen extends Screen {
             case TRAJECTORY -> { if (index == 0) config.lineDensity = (int) value; else if (index == 2) config.trajectoryThickness = (int) value; else if (index == 3) config.trajectoryStartDistance = value; }
             case XRAY -> { }
             case FLIGHT -> { if (index == 0) config.flightSpeed = value; else if (index == 1) config.flightVerticalSpeed = value; else if (index == 2) config.flightSprintMultiplier = value; }
+            case ATTRIBUTE_SWAP -> { if (index == 1) config.attributeSwapSlot = (int) value; }
+            case FREECAM -> { if (index == 1) config.freecamSpeed = value; }
             default -> { }
         }
     }
@@ -333,6 +339,8 @@ public final class ModuleSettingsScreen extends Screen {
             case TRAJECTORY -> { rows.add(row("Simulation quality", Integer.toString(config.lineDensity))); rows.add(row("Line color", colorName(config.trajectoryColor))); rows.add(row("Thickness", Integer.toString(config.trajectoryThickness))); rows.add(row("Start distance", trim(config.trajectoryStartDistance))); }
             case XRAY -> { rows.add(row("Visible blocks", config.xrayMode.displayName())); rows.add(row("Render mode", "Safe hide")); }
             case FLIGHT -> { rows.add(row("Horizontal speed", trim(config.flightSpeed))); rows.add(row("Vertical speed", trim(config.flightVerticalSpeed))); rows.add(row("Sprint multiplier", trim(config.flightSprintMultiplier) + "x")); }
+            case ATTRIBUTE_SWAP -> { rows.add(row("Attribute Swap", onOff(config.attributeSwap))); rows.add(row("Hotbar slot", Integer.toString(config.attributeSwapSlot))); }
+            case FREECAM -> { rows.add(row("Freecam", onOff(config.freecam))); rows.add(row("Speed", trim(config.freecamSpeed))); }
             default -> { }
         }
         rows.add(row("Chat toggle messages", onOff(config.chatToggleMessages)));
@@ -342,7 +350,7 @@ public final class ModuleSettingsScreen extends Screen {
     private int baseOptionCount() {
         return switch (type) {
             case PLAYER -> 9; case ENTITY -> 11; case ITEM, PROJECTILE -> 4; case BLOCKS -> 4; case TRAJECTORY -> 4;
-            case XRAY -> 2; case FLIGHT -> 3; default -> 0;
+            case XRAY -> 2; case FLIGHT -> 3; case ATTRIBUTE_SWAP, FREECAM -> 2; default -> 0;
         };
     }
 
@@ -355,15 +363,17 @@ public final class ModuleSettingsScreen extends Screen {
             case BLOCKS -> { if (index == 0) config.blockHighlightMode = direction > 0 ? config.blockHighlightMode.next() : previous(config.blockHighlightMode); else if (index == 2) config.blockOutlineColor = cycleColor(config.blockOutlineColor, direction); }
             case TRAJECTORY -> { if (index == 1) config.trajectoryColor = cycleColor(config.trajectoryColor, direction); }
             case XRAY -> { if (index == 0) config.xrayMode = direction > 0 ? config.xrayMode.next() : previous(config.xrayMode); }
+            case ATTRIBUTE_SWAP -> { if (index == 0) config.attributeSwap = !config.attributeSwap; }
+            case FREECAM -> { if (index == 0) config.freecam = !config.freecam; }
             default -> { }
         }
     }
 
-    private int getKeybind() { return switch (type) { case PLAYER -> config.playerEspKey; case ENTITY -> config.entityHighlightsKey; case ITEM, PROJECTILE -> -1; case BLOCKS -> config.blockHighlightsKey; case TRAJECTORY -> config.trajectoryPreviewKey; case XRAY -> config.xrayKey; case FLIGHT -> config.flightKey; case AUTO_SPRINT -> config.autoSprintKey; case NO_SLOW -> config.noSlowKey; case NO_STUN -> config.noStunKey; case NO_FALL -> config.noFallKey; case CRITICALS -> config.criticalsKey; case AUTO_TOTEM -> config.autoTotemKey; case AIR_JUMP -> config.airJumpKey; case FULLBRIGHT -> config.fullbrightKey; case FPS -> config.showFpsKey; case COORDINATES -> config.showCoordinatesKey; }; }
-    private void setKeybind(int key) { switch (type) { case PLAYER -> config.playerEspKey = key; case ENTITY -> config.entityHighlightsKey = key; case ITEM, PROJECTILE -> { } case BLOCKS -> config.blockHighlightsKey = key; case TRAJECTORY -> config.trajectoryPreviewKey = key; case XRAY -> config.xrayKey = key; case FLIGHT -> config.flightKey = key; case AUTO_SPRINT -> config.autoSprintKey = key; case NO_SLOW -> config.noSlowKey = key; case NO_STUN -> config.noStunKey = key; case NO_FALL -> config.noFallKey = key; case CRITICALS -> config.criticalsKey = key; case AUTO_TOTEM -> config.autoTotemKey = key; case AIR_JUMP -> config.airJumpKey = key; case FULLBRIGHT -> config.fullbrightKey = key; case FPS -> config.showFpsKey = key; case COORDINATES -> config.showCoordinatesKey = key; } }
+    private int getKeybind() { return switch (type) { case PLAYER -> config.playerEspKey; case ENTITY -> config.entityHighlightsKey; case ITEM, PROJECTILE -> -1; case BLOCKS -> config.blockHighlightsKey; case TRAJECTORY -> config.trajectoryPreviewKey; case XRAY -> config.xrayKey; case FLIGHT -> config.flightKey; case AUTO_SPRINT -> config.autoSprintKey; case NO_SLOW -> config.noSlowKey; case NO_STUN -> config.noStunKey; case NO_FALL -> config.noFallKey; case CRITICALS -> config.criticalsKey; case AUTO_TOTEM -> config.autoTotemKey; case ATTRIBUTE_SWAP -> config.attributeSwapKey; case AIR_JUMP -> config.airJumpKey; case FREECAM -> config.freecamKey; case FULLBRIGHT -> config.fullbrightKey; case FPS -> config.showFpsKey; case COORDINATES -> config.showCoordinatesKey; }; }
+    private void setKeybind(int key) { switch (type) { case PLAYER -> config.playerEspKey = key; case ENTITY -> config.entityHighlightsKey = key; case ITEM, PROJECTILE -> { } case BLOCKS -> config.blockHighlightsKey = key; case TRAJECTORY -> config.trajectoryPreviewKey = key; case XRAY -> config.xrayKey = key; case FLIGHT -> config.flightKey = key; case AUTO_SPRINT -> config.autoSprintKey = key; case NO_SLOW -> config.noSlowKey = key; case NO_STUN -> config.noStunKey = key; case NO_FALL -> config.noFallKey = key; case CRITICALS -> config.criticalsKey = key; case AUTO_TOTEM -> config.autoTotemKey = key; case ATTRIBUTE_SWAP -> config.attributeSwapKey = key; case AIR_JUMP -> config.airJumpKey = key; case FREECAM -> config.freecamKey = key; case FULLBRIGHT -> config.fullbrightKey = key; case FPS -> config.showFpsKey = key; case COORDINATES -> config.showCoordinatesKey = key; } }
 
-    private String title() { return switch (type) { case PLAYER -> "Player ESP Settings"; case ENTITY -> "Entity ESP Settings"; case ITEM -> "Item ESP Settings"; case PROJECTILE -> "Projectile ESP Settings"; case BLOCKS -> "Block ESP Settings"; case TRAJECTORY -> "Trajectory Settings"; case XRAY -> "X-Ray Settings"; case FLIGHT -> "Flight Settings"; case AUTO_SPRINT -> "Auto Sprint Settings"; case NO_SLOW -> "No Slow Settings"; case NO_STUN -> "No Stun Settings"; case NO_FALL -> "No Fall Settings"; case CRITICALS -> "Criticals Settings"; case AUTO_TOTEM -> "Auto Totem Settings"; case AIR_JUMP -> "Air Jump Settings"; case FULLBRIGHT -> "Fullbright Settings"; case FPS -> "FPS HUD Settings"; case COORDINATES -> "Coordinates HUD Settings"; }; }
-    private String description() { return switch (type) { case PLAYER -> "Highlights other players with stable boxes."; case ENTITY -> "Highlights selected entity types."; case ITEM -> "Highlights dropped items."; case PROJECTILE -> "Highlights arrows and other projectiles."; case BLOCKS -> "Shows selected nearby blocks with an overlay."; case TRAJECTORY -> "Predicts projectile paths and collision targets."; case XRAY -> "Rebuilds chunks to show selected blocks."; case FLIGHT -> "Controls horizontal, vertical, and sprint flight speed."; case AUTO_TOTEM -> "Refills your offhand from inventory."; default -> "Click the keybind row to bind a key."; }; }
+    private String title() { return switch (type) { case PLAYER -> "Player ESP Settings"; case ENTITY -> "Entity ESP Settings"; case ITEM -> "Item ESP Settings"; case PROJECTILE -> "Projectile ESP Settings"; case BLOCKS -> "Block ESP Settings"; case TRAJECTORY -> "Trajectory Settings"; case XRAY -> "X-Ray Settings"; case FLIGHT -> "Flight Settings"; case AUTO_SPRINT -> "Auto Sprint Settings"; case NO_SLOW -> "No Slow Settings"; case NO_STUN -> "No Stun Settings"; case NO_FALL -> "No Fall Settings"; case CRITICALS -> "Criticals Settings"; case AUTO_TOTEM -> "Auto Totem Settings"; case ATTRIBUTE_SWAP -> "Attribute Swap Settings"; case AIR_JUMP -> "Air Jump Settings"; case FREECAM -> "Freecam Settings"; case FULLBRIGHT -> "Fullbright Settings"; case FPS -> "FPS HUD Settings"; case COORDINATES -> "Coordinates HUD Settings"; }; }
+    private String description() { return switch (type) { case PLAYER -> "Highlights other players with stable glow."; case ENTITY -> "Highlights selected entity types."; case ITEM -> "Highlights dropped items."; case PROJECTILE -> "Highlights arrows and other projectiles."; case BLOCKS -> "Shows selected nearby blocks with an overlay."; case TRAJECTORY -> "Predicts projectile paths and collision targets."; case XRAY -> "Rebuilds chunks to show selected blocks."; case FLIGHT -> "Controls horizontal, vertical, and sprint flight speed."; case AUTO_TOTEM -> "Refills your offhand from inventory."; case ATTRIBUTE_SWAP -> "Swaps to a hotbar slot for attacks."; case FREECAM -> "Moves the camera independently."; default -> "Click the keybind row to bind a key."; }; }
 
     private static String[] row(String a, String b) { return new String[]{a, b}; }
     private static String onOff(boolean value) { return value ? "ON" : "OFF"; }
