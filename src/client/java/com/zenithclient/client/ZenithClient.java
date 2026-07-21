@@ -10,6 +10,7 @@ import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -78,10 +79,11 @@ public final class ZenithClient implements ClientModInitializer {
         long window = client.getWindow().handle();
         boolean menuDown = GLFW.glfwGetKey(window, GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS;
         if ((menuDown && !menuKeyWasDown) || openMenu.consumeClick()) {
-            if (client.gui.screen() instanceof ZenithScreen || client.gui.screen() instanceof ModuleSettingsScreen) {
+            Screen screen = currentScreen(client);
+            if (screen instanceof ZenithScreen || screen instanceof ModuleSettingsScreen) {
                 client.setScreenAndShow(null);
-            } else if (client.gui.screen() == null) {
-                client.setScreenAndShow(new ZenithScreen(client.gui.screen(), CONFIG));
+            } else if (screen == null) {
+                client.setScreenAndShow(new ZenithScreen(null, CONFIG));
             }
         }
         menuKeyWasDown = menuDown;
@@ -288,7 +290,7 @@ public final class ZenithClient implements ClientModInitializer {
     }
 
     private static void handleModuleKeybinds(Minecraft client) {
-        if (client.gui.screen() != null) {
+        if (currentScreen(client) != null) {
             java.util.Arrays.fill(KEY_STATES, false);
             return;
         }
@@ -371,7 +373,8 @@ public final class ZenithClient implements ClientModInitializer {
 
     private static void refillTotem(Minecraft client) {
         if (client.player == null || client.gameMode == null) return;
-        if (client.gui.screen() instanceof ChatScreen || client.gui.screen() instanceof ZenithScreen || client.gui.screen() instanceof ModuleSettingsScreen) return;
+        Screen screen = currentScreen(client);
+        if (screen instanceof ChatScreen || screen instanceof ZenithScreen || screen instanceof ModuleSettingsScreen) return;
         if (client.player.getOffhandItem().is(Items.TOTEM_OF_UNDYING)) return;
 
         int inventorySlot = -1;
@@ -386,6 +389,22 @@ public final class ZenithClient implements ClientModInitializer {
 
         int menuSlot = inventorySlot < 9 ? inventorySlot + 36 : inventorySlot;
         client.gameMode.handleContainerInput(client.player.inventoryMenu.containerId, menuSlot, 40, ContainerInput.SWAP, client.player);
+    }
+
+    private static Screen currentScreen(Minecraft client) {
+        try {
+            java.lang.reflect.Field field = Minecraft.class.getField("screen");
+            Object value = field.get(client);
+            return value instanceof Screen screen ? screen : null;
+        } catch (ReflectiveOperationException ignored) {
+            try {
+                java.lang.reflect.Method method = client.gui.getClass().getMethod("screen");
+                Object value = method.invoke(client.gui);
+                return value instanceof Screen screen ? screen : null;
+            } catch (ReflectiveOperationException ignoredAgain) {
+                return null;
+            }
+        }
     }
 
     public static void setTrajectoryTarget(Entity entity) {

@@ -47,13 +47,15 @@ Right-click a module card to open its settings. Numeric settings support both dr
 ## Build
 
 1. Install JDK 25.
-2. Run `build.bat`.
-3. The latest jar is copied to `releases/latest/`.
-4. A versioned jar is copied to `releases/v<version>/`.
-5. Release builds also mirror the newest compatible jar into `minecraft_versions/<minecraft-version>/`.
+2. Run `build.bat all` to build every compatible target from `minecraft_build_versions.csv`, or run `build.bat 26.2` for one Minecraft version.
+3. The newest compatible jars are copied to `releases/latest/`.
+4. Versioned jars are copied to `releases/v<version>/<minecraft-version>/`.
+5. The current jar for each working Minecraft version is mirrored into `minecraft_versions/<minecraft-version>/`.
+
+The current source tree builds on the official-named Fabric 26.x line. The matrix includes older 1.21.x and 1.20.x targets so the build can test downward, but it stops at the first incompatible target instead of producing broken jars. At the moment, 1.21.11 is the first blocked target because that Fabric API line uses intermediary access wideners and needs a separate Yarn/intermediary compatibility setup.
 
 ## Git and Releases
 
 - `push_changes.bat` commits local changes and pushes `main`.
 - `release_version.bat` shows the current version, defaults to the next version, asks for `all` or a supported Minecraft version, builds the jar, commits, tags the release as `v<version>-all` or `v<version>-mc<version>`, pushes it, and uploads the matching jar assets.
-- Supported Minecraft versions are listed in `supported_minecraft_versions.txt`. The script will stop instead of pretending to build an older version that the current source tree cannot support.
+- Supported Minecraft versions are listed in `minecraft_build_versions.csv`. The script will stop instead of pretending to build an older version that the current source tree cannot support.
