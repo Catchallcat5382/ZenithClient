@@ -20,10 +20,8 @@ import net.minecraft.world.phys.Vec3;
 import java.util.List;
 
 /**
- * Continuous HUD-projected geometry renderer.
- *
- * This intentionally avoids particles, vanilla glow, and unstable 26.2 GPU internals.
- * World points are projected into screen space, then drawn as connected pixels/rectangles.
+ * Lightweight HUD overlays for tracers, labels, block boxes, and trajectories.
+ * Entity ESP outlines are handled by Minecraft's own model glow path.
  */
 public final class ScreenSpaceVisualRenderer {
     private ScreenSpaceVisualRenderer() { }
@@ -34,17 +32,17 @@ public final class ScreenSpaceVisualRenderer {
 
         float tickDelta = deltaTracker.getGameTimeDeltaPartialTick(true);
         Projection projection = new Projection(client, tickDelta);
-        renderEntities(graphics, client, config, projection, tickDelta);
+        renderEntityOverlays(graphics, client, config, projection, tickDelta);
         if (config.blockHighlights) renderBlocks(graphics, config, projection, highlightedBlocks);
         if (config.trajectoryPreview) renderTrajectory(graphics, client, config, projection);
     }
 
-    private static void renderEntities(GuiGraphicsExtractor graphics, Minecraft client,
-                                       ZenithConfig config, Projection projection, float tickDelta) {
+    private static void renderEntityOverlays(GuiGraphicsExtractor graphics, Minecraft client,
+                                             ZenithConfig config, Projection projection, float tickDelta) {
         double rangeSquared = (double) config.entityRange * config.entityRange;
         int rendered = 0;
         for (Entity entity : client.level.entitiesForRendering()) {
-            if (rendered >= 96) break;
+            if (rendered >= 64) break;
             if (entity == client.player || entity.distanceToSqr(client.player) > rangeSquared) continue;
             boolean player = entity instanceof Player;
             boolean item = entity instanceof ItemEntity;
@@ -55,40 +53,21 @@ public final class ScreenSpaceVisualRenderer {
             if (!player && !item && !projectile && (!config.entityHighlights || !ZenithClient.matchesEntityMode(entity))) continue;
 
             AABB espBox = lerpedBox(entity, tickDelta).inflate(0.04);
-            ScreenPoint[] corners = projectCorners(projection, espBox);
-            ScreenRect rect = bounds(corners);
-            if (rect == null || rect.width() < 2 || rect.height() < 3) continue;
+            ScreenPoint point = projection.project(new Vec3((espBox.minX + espBox.maxX) * 0.5, espBox.maxY, (espBox.minZ + espBox.maxZ) * 0.5));
+            if (point == null) continue;
 
             int outlineColor = player ? config.playerOutlineColor : item ? config.itemEspColor : projectile ? config.projectileEspColor : config.entityOutlineColor;
-            int fillColor = player ? config.playerFillColor : item ? config.itemEspColor : projectile ? config.projectileEspColor : config.entityFillColor;
-            int fillOpacity = player ? config.playerFillOpacity : item || projectile ? 10 : config.entityFillOpacity;
-            int thickness = player ? config.playerOutlineThickness : item || projectile ? 1 : config.entityOutlineThickness;
-            ZenithConfig.EspShape shape = player ? config.playerEspShape : config.entityEspShape;
-            boolean fillEnabled = player || item || projectile || config.entityFill;
-            boolean outlineEnabled = item || projectile || player || config.entityOutline;
             boolean tracers = player ? config.playerTracers : item ? config.itemTracers : projectile ? config.projectileTracers : config.entityTracers;
             boolean nameTags = player ? config.playerNameTags : item || projectile || config.entityNameTags;
 
-            if (fillEnabled && fillOpacity > 0) {
-                graphics.fill(rect.minX, rect.minY, rect.maxX, rect.maxY,
-                        withAlpha(fillColor, percentToAlpha(fillOpacity)));
-            }
-            if (outlineEnabled) {
-                int outline = withAlpha(outlineColor, 255);
-                int lineWidth = Math.max(1, Math.min(4, thickness));
-                if (shape == ZenithConfig.EspShape.BOX_3D) drawProjectedBox(graphics, corners, outline, lineWidth);
-                else if (shape == ZenithConfig.EspShape.CORNERS) drawCorners(graphics, rect, outline, lineWidth);
-                else drawRect(graphics, rect, outline, lineWidth);
-            }
             if (tracers) {
                 ScreenPoint from = new ScreenPoint(projection.width / 2, projection.height - 2);
-                ScreenPoint to = new ScreenPoint((rect.minX + rect.maxX) / 2, rect.maxY);
-                drawLine(graphics, from, to, withAlpha(outlineColor, 210), 1);
+                drawLine(graphics, from, point, withAlpha(outlineColor, 210), 1);
             }
             if (nameTags) {
                 String name = entity.getName().getString();
-                int textX = (rect.minX + rect.maxX - client.font.width(name)) / 2;
-                graphics.text(client.font, name, textX, Math.max(2, rect.minY - 10), withAlpha(outlineColor, 255), true);
+                int textX = point.x - client.font.width(name) / 2;
+                graphics.text(client.font, name, textX, Math.max(2, point.y - 10), withAlpha(outlineColor, 255), true);
             }
             rendered++;
         }

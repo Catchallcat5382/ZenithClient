@@ -14,18 +14,33 @@ if not exist ".git" (
 )
 
 for /f "usebackq tokens=2 delims==" %%V in (`findstr /b "mod_version=" gradle.properties`) do set CURRENT_VERSION=%%V
-echo Current version: v%CURRENT_VERSION%
+for /f "usebackq tokens=2 delims==" %%M in (`findstr /b "minecraft_version=" gradle.properties`) do set CURRENT_MC=%%M
 set /a NEXT_VERSION=%CURRENT_VERSION%+1
-echo Next version: v%NEXT_VERSION%
+
+set SUPPORTED=
+for /f "usebackq tokens=* delims=" %%V in ("supported_minecraft_versions.txt") do (
+  if not "%%V"=="" set SUPPORTED=!SUPPORTED! %%V
+)
+
+echo Current mod version: v%CURRENT_VERSION%
+echo Next mod version: v%NEXT_VERSION%
+echo Supported Minecraft versions:%SUPPORTED%
 
 set NEW_VERSION=%1
+set MC_SELECTION=%2
 set FORCE_RELEASE=0
-if /i "%2"=="--force" set FORCE_RELEASE=1
 if /i "%1"=="--force" (
   set FORCE_RELEASE=1
   set NEW_VERSION=
+  set MC_SELECTION=
 )
-if "%NEW_VERSION%"=="" set /p NEW_VERSION=New version, or press Enter for v%NEXT_VERSION%: 
+if /i "%2"=="--force" (
+  set FORCE_RELEASE=1
+  set MC_SELECTION=
+)
+if /i "%3"=="--force" set FORCE_RELEASE=1
+
+if "%NEW_VERSION%"=="" set /p NEW_VERSION=New mod version, or press Enter for v%NEXT_VERSION%: 
 if "%NEW_VERSION%"=="" set NEW_VERSION=%NEXT_VERSION%
 set NEW_VERSION=%NEW_VERSION:v=%
 
@@ -35,66 +50,126 @@ if "%NEW_VERSION%"=="%CURRENT_VERSION%" (
   exit /b 1
 )
 
-git rev-parse -q --verify "refs/tags/v%NEW_VERSION%" >nul 2>nul
+if "%MC_SELECTION%"=="" set /p MC_SELECTION=Minecraft version to release, or "all" [%CURRENT_MC%/all]: 
+if "%MC_SELECTION%"=="" set MC_SELECTION=all
+set MC_SELECTION=%MC_SELECTION: =%
+
+set VALID_SELECTION=0
+if /i "%MC_SELECTION%"=="all" set VALID_SELECTION=1
+for %%V in (%SUPPORTED%) do (
+  if /i "%MC_SELECTION%"=="%%V" set VALID_SELECTION=1
+)
+if not "%VALID_SELECTION%"=="1" (
+  echo Unsupported Minecraft version "%MC_SELECTION%".
+  echo Pick one of:%SUPPORTED% or all
+  exit /b 1
+)
+
+set RELEASE_SUFFIX=mc%MC_SELECTION%
+if /i "%MC_SELECTION%"=="all" set RELEASE_SUFFIX=all
+set RELEASE_TAG=v%NEW_VERSION%-%RELEASE_SUFFIX%
+
+git rev-parse -q --verify "refs/tags/%RELEASE_TAG%" >nul 2>nul
 if not errorlevel 1 (
   if not "%FORCE_RELEASE%"=="1" (
-    echo Refusing to overwrite existing tag v%NEW_VERSION%.
-    echo Pick a newer version, or run release_version.bat %NEW_VERSION% --force if you really mean to replace it.
+    echo Refusing to overwrite existing tag %RELEASE_TAG%.
+    echo Pick a newer version, or add --force if you really mean to replace it.
     exit /b 1
   )
 )
 
-if not "%NEW_VERSION%"=="%CURRENT_VERSION%" (
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "(Get-Content gradle.properties) -replace '^mod_version=.*','mod_version=%NEW_VERSION%' | Set-Content -Encoding UTF8 gradle.properties"
-)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "(Get-Content gradle.properties) -replace '^mod_version=.*','mod_version=%NEW_VERSION%' | Set-Content -Encoding UTF8 gradle.properties"
 
 call build.bat
 if errorlevel 1 exit /b 1
 
+set LATEST_JAR=
+for %%J in (releases\latest\*.jar) do set LATEST_JAR=%%~fJ
+if "!LATEST_JAR!"=="" (
+  echo No latest jar found in releases\latest.
+  exit /b 1
+)
+
+if not exist "minecraft_versions" mkdir "minecraft_versions"
+if /i "%MC_SELECTION%"=="all" (
+  for %%V in (%SUPPORTED%) do (
+    if /i "%%V"=="%CURRENT_MC%" (
+      if not exist "minecraft_versions\%%V" mkdir "minecraft_versions\%%V"
+      del /q "minecraft_versions\%%V\*.jar" >nul 2>nul
+      copy /y "!LATEST_JAR!" "minecraft_versions\%%V\" >nul
+    ) else (
+      echo Skipping %%V: this source tree is currently configured for Minecraft %CURRENT_MC%.
+    )
+  )
+) else (
+  if /i not "%MC_SELECTION%"=="%CURRENT_MC%" (
+    echo Cannot build Minecraft %MC_SELECTION% from this checkout. Current source target is %CURRENT_MC%.
+    echo Add a version-specific source/config first, then add it to supported_minecraft_versions.txt.
+    exit /b 1
+  )
+  if not exist "minecraft_versions\%MC_SELECTION%" mkdir "minecraft_versions\%MC_SELECTION%"
+  del /q "minecraft_versions\%MC_SELECTION%\*.jar" >nul 2>nul
+  copy /y "!LATEST_JAR!" "minecraft_versions\%MC_SELECTION%\" >nul
+)
+
 git add .
 git diff --cached --quiet
 if errorlevel 1 (
-  git commit -m "Release v%NEW_VERSION%"
+  git commit -m "Release v%NEW_VERSION% for %RELEASE_SUFFIX%"
 ) else (
   echo No file changes to commit for v%NEW_VERSION%.
 )
 
 if "%FORCE_RELEASE%"=="1" (
-  git tag -f "v%NEW_VERSION%"
+  git tag -f "%RELEASE_TAG%"
 ) else (
-  git tag "v%NEW_VERSION%"
+  git tag "%RELEASE_TAG%"
 )
 
 git remote get-url origin >nul 2>nul
 if not errorlevel 1 (
   git push -u origin main
   if "%FORCE_RELEASE%"=="1" (
-    git push -f origin "v%NEW_VERSION%"
+    git push -f origin "%RELEASE_TAG%"
   ) else (
-    git push origin "v%NEW_VERSION%"
+    git push origin "%RELEASE_TAG%"
   )
 )
 
 where gh >nul 2>nul
 if not errorlevel 1 (
-  set LATEST_JAR=
-  for %%J in (releases\latest\*.jar) do set LATEST_JAR=%%~fJ
-  if "!LATEST_JAR!"=="" (
-    echo No latest jar found in releases\latest.
-    exit /b 1
-  )
-  gh release view "v%NEW_VERSION%" >nul 2>nul
-  if errorlevel 1 (
-    gh release create "v%NEW_VERSION%" "!LATEST_JAR!" --title "ZenithClient v%NEW_VERSION%" --notes "ZenithClient v%NEW_VERSION% build."
-  ) else (
+  gh release view "%RELEASE_TAG%" >nul 2>nul
+  if not errorlevel 1 (
     if "%FORCE_RELEASE%"=="1" (
-      gh release upload "v%NEW_VERSION%" "!LATEST_JAR!" --clobber
+      for /r "minecraft_versions" %%J in (*.jar) do gh release upload "%RELEASE_TAG%" "%%~fJ" --clobber
     ) else (
-      echo Refusing to overwrite existing GitHub release v%NEW_VERSION%.
+      echo Refusing to overwrite existing GitHub release %RELEASE_TAG%.
       exit /b 1
+    )
+  ) else (
+    set NOTES=ZenithClient v%NEW_VERSION% for %RELEASE_SUFFIX%. Latest local jar is mirrored under minecraft_versions.
+    set CREATED_RELEASE=0
+    if /i "%MC_SELECTION%"=="all" (
+      for /r "minecraft_versions" %%J in (*.jar) do (
+        if "!CREATED_RELEASE!"=="0" (
+          gh release create "%RELEASE_TAG%" "%%~fJ" --title "ZenithClient v%NEW_VERSION% - all supported Minecraft versions" --notes "!NOTES!"
+          set CREATED_RELEASE=1
+        ) else (
+          gh release upload "%RELEASE_TAG%" "%%~fJ" --clobber
+        )
+      )
+    ) else (
+      for %%J in (minecraft_versions\%MC_SELECTION%\*.jar) do (
+        if "!CREATED_RELEASE!"=="0" (
+          gh release create "%RELEASE_TAG%" "%%~fJ" --title "ZenithClient v%NEW_VERSION% - Minecraft %MC_SELECTION%" --notes "!NOTES!"
+          set CREATED_RELEASE=1
+        ) else (
+          gh release upload "%RELEASE_TAG%" "%%~fJ" --clobber
+        )
+      )
     )
   )
 )
 
-echo Latest version is v%NEW_VERSION%.
+echo Released %RELEASE_TAG%.
 endlocal

@@ -18,7 +18,10 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Monster;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
@@ -48,6 +51,8 @@ public final class ZenithClient implements ClientModInitializer {
     private static BlockPos lastBlockScanOrigin;
     private static ZenithConfig.BlockHighlightMode lastBlockScanMode;
     private static int lastBlockScanRadius = -1;
+    private static boolean lastXrayState = CONFIG.xray;
+    private static boolean initialXrayRefreshDone;
 
     public static ZenithConfig getConfig() { return CONFIG; }
 
@@ -86,6 +91,11 @@ public final class ZenithClient implements ClientModInitializer {
 
         if (client.player == null || client.level == null) return;
         ticks++;
+        if (CONFIG.xray && !initialXrayRefreshDone) {
+            initialXrayRefreshDone = true;
+            refreshWorldRenderer();
+        }
+        if (!CONFIG.xray) initialXrayRefreshDone = false;
 
         if (CONFIG.autoSprint && client.options.keyUp.isDown() && !client.player.isCrouching()) {
             client.player.setSprinting(true);
@@ -94,6 +104,10 @@ public final class ZenithClient implements ClientModInitializer {
         if (CONFIG.flight) applySmoothFlight(client);
         applyMovementUtilities(client);
         if (CONFIG.autoTotem && ticks % 2 == 0) refillTotem(client);
+        if (CONFIG.xray != lastXrayState) {
+            lastXrayState = CONFIG.xray;
+            refreshWorldRenderer();
+        }
 
         if (CONFIG.blockHighlights) {
             BlockPos origin = client.player.blockPosition();
@@ -380,6 +394,24 @@ public final class ZenithClient implements ClientModInitializer {
 
     public static boolean isTrajectoryTarget(Entity entity) {
         return CONFIG.trajectoryPreview && entity != null && entity == trajectoryTarget;
+    }
+
+    public static boolean shouldGlowEsp(Entity entity) {
+        Minecraft client = Minecraft.getInstance();
+        if (client.player == null || entity == null || entity == client.player) return false;
+        if (entity.distanceToSqr(client.player) > (double) CONFIG.entityRange * CONFIG.entityRange) return false;
+        if (entity instanceof Player) return CONFIG.playerEsp;
+        if (entity instanceof ItemEntity) return CONFIG.itemEsp;
+        if (entity instanceof Projectile) return CONFIG.projectileEsp;
+        return CONFIG.entityHighlights && matchesEntityMode(entity);
+    }
+
+    public static int espColor(Entity entity) {
+        if (!shouldGlowEsp(entity)) return -1;
+        if (entity instanceof Player) return CONFIG.playerOutlineColor & 0xFFFFFF;
+        if (entity instanceof ItemEntity) return CONFIG.itemEspColor & 0xFFFFFF;
+        if (entity instanceof Projectile) return CONFIG.projectileEspColor & 0xFFFFFF;
+        return CONFIG.entityOutlineColor & 0xFFFFFF;
     }
 
 

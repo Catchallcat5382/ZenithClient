@@ -15,8 +15,15 @@ public abstract class EntityGlowMixin {
         Minecraft client = Minecraft.getInstance();
         Entity self = (Entity) (Object) this;
         if (client.player == null || client.level == null || self == client.player) return;
-        if (ZenithClient.isTrajectoryTarget(self)) {
+        if (ZenithClient.shouldGlowEsp(self) || ZenithClient.isTrajectoryTarget(self)) {
             cir.setReturnValue(true);
         }
+    }
+
+    @Inject(method = "getTeamColor", at = @At("HEAD"), cancellable = true)
+    private void zenith$espGlowColor(CallbackInfoReturnable<Integer> cir) {
+        Entity self = (Entity) (Object) this;
+        int color = ZenithClient.espColor(self);
+        if (color >= 0) cir.setReturnValue(color & 0xFFFFFF);
     }
 }

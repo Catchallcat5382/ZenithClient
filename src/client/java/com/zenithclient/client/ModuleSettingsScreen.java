@@ -285,7 +285,7 @@ public final class ModuleSettingsScreen extends Screen {
             case ITEM, PROJECTILE -> switch (index) { case 2 -> new Numeric(8, 256, 1, true); default -> null; };
             case BLOCKS -> switch (index) { case 1 -> new Numeric(4, 32, 1, true); case 3 -> new Numeric(0, 100, 1, true); default -> null; };
             case TRAJECTORY -> switch (index) { case 0 -> new Numeric(1, 12, 1, true); case 2 -> new Numeric(1, 6, 1, true); case 3 -> new Numeric(0, 8, 0.05, false); default -> null; };
-            case XRAY -> switch (index) { case 1 -> new Numeric(0, 255, 1, true); default -> null; };
+            case XRAY -> null;
             case FLIGHT -> switch (index) { case 0, 1 -> new Numeric(0.1, 10, 0.1, false); case 2 -> new Numeric(1, 4, 0.1, false); default -> null; };
             default -> null;
         };
@@ -298,7 +298,7 @@ public final class ModuleSettingsScreen extends Screen {
             case ITEM, PROJECTILE -> index == 2 ? config.entityRange : 0;
             case BLOCKS -> switch (index) { case 1 -> config.blockRadius; case 3 -> config.blockFillOpacity; default -> 0; };
             case TRAJECTORY -> switch (index) { case 0 -> config.lineDensity; case 2 -> config.trajectoryThickness; case 3 -> config.trajectoryStartDistance; default -> 0; };
-            case XRAY -> index == 1 ? config.xrayOpacity : 0;
+            case XRAY -> 0;
             case FLIGHT -> switch (index) { case 0 -> config.flightSpeed; case 1 -> config.flightVerticalSpeed; case 2 -> config.flightSprintMultiplier; default -> 0; };
             default -> 0;
         };
@@ -316,7 +316,7 @@ public final class ModuleSettingsScreen extends Screen {
             case ITEM, PROJECTILE -> { if (index == 2) config.entityRange = (int) value; }
             case BLOCKS -> { if (index == 1) config.blockRadius = (int) value; else if (index == 3) config.blockFillOpacity = (int) value; }
             case TRAJECTORY -> { if (index == 0) config.lineDensity = (int) value; else if (index == 2) config.trajectoryThickness = (int) value; else if (index == 3) config.trajectoryStartDistance = value; }
-            case XRAY -> { if (index == 1) config.xrayOpacity = (int) value; }
+            case XRAY -> { }
             case FLIGHT -> { if (index == 0) config.flightSpeed = value; else if (index == 1) config.flightVerticalSpeed = value; else if (index == 2) config.flightSprintMultiplier = value; }
             default -> { }
         }
@@ -331,7 +331,7 @@ public final class ModuleSettingsScreen extends Screen {
             case PROJECTILE -> { rows.add(row("Projectile ESP", onOff(config.projectileEsp))); rows.add(row("Color", colorName(config.projectileEspColor))); rows.add(row("Range", config.entityRange + " blocks")); rows.add(row("Tracers", onOff(config.projectileTracers))); }
             case BLOCKS -> { rows.add(row("Block type", config.blockHighlightMode.displayName())); rows.add(row("Search radius", config.blockRadius + " blocks")); rows.add(row("Outline color", colorName(config.blockOutlineColor))); rows.add(row("Fill opacity", config.blockFillOpacity + "%")); }
             case TRAJECTORY -> { rows.add(row("Simulation quality", Integer.toString(config.lineDensity))); rows.add(row("Line color", colorName(config.trajectoryColor))); rows.add(row("Thickness", Integer.toString(config.trajectoryThickness))); rows.add(row("Start distance", trim(config.trajectoryStartDistance))); }
-            case XRAY -> { rows.add(row("Visible blocks", config.xrayMode.displayName())); rows.add(row("Hidden-block opacity", config.xrayOpacity + " / 255")); }
+            case XRAY -> { rows.add(row("Visible blocks", config.xrayMode.displayName())); rows.add(row("Render mode", "Safe hide")); }
             case FLIGHT -> { rows.add(row("Horizontal speed", trim(config.flightSpeed))); rows.add(row("Vertical speed", trim(config.flightVerticalSpeed))); rows.add(row("Sprint multiplier", trim(config.flightSprintMultiplier) + "x")); }
             default -> { }
         }

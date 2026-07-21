@@ -15,7 +15,7 @@ public final class XrayHooks {
     public static int alpha(BlockState state, BlockPos pos) {
         ZenithConfig config = ZenithClient.getConfig();
         if (!config.xray) return -1;
-        return isWhitelisted(state.getBlock()) ? 255 : Math.max(0, Math.min(255, config.xrayOpacity));
+        return isWhitelisted(state.getBlock()) ? 255 : 0;
     }
 
     public static boolean isBlocked(Block block) {
