@@ -29,11 +29,24 @@ loom {
     }
 }
 
+if ((project.findProperty('legacy_sources') ?: 'false') == 'true') {
+    sourceSets {
+        client {
+            java.setSrcDirs([file('.generated-legacy-client/java')])
+        }
+    }
+}
+
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-    compileOnly "maven.modrinth:mOgUt4GM:${project.modmenu_version_id}"
+    if ((project.findProperty('mappings_mode') ?: 'none') == 'mojang') {
+        mappings loom.officialMojangMappings()
+    }
+    def fabricImplementation = configurations.findByName('modImplementation') != null ? 'modImplementation' : 'implementation'
+    def fabricCompileOnly = configurations.findByName('modCompileOnly') != null ? 'modCompileOnly' : 'compileOnly'
+    add(fabricImplementation, "net.fabricmc:fabric-loader:${project.loader_version}")
+    add(fabricImplementation, "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}")
+    add(fabricCompileOnly, "maven.modrinth:mOgUt4GM:${project.modmenu_version_id}")
 }
 
 processResources {
@@ -54,6 +67,8 @@ java {
 
 jar {
     archiveFileName = "ZenithClient-v${project.version}-mc${project.minecraft_version}.jar"
+    from(sourceSets.client.output)
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from('LICENSE') { rename { "${it}_${project.name}" } }
     manifest {
         attributes(
@@ -63,4 +78,8 @@ jar {
             'Built-At': new Date().format("yyyy-MM-dd'T'HH:mm:ssXXX")
         )
     }
+}
+
+tasks.matching { it.name == 'remapJar' }.configureEach {
+    archiveFileName = "ZenithClient-v${project.version}-mc${project.minecraft_version}.jar"
 }

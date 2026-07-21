@@ -87,7 +87,7 @@ if not errorlevel 1 (
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command "(Get-Content gradle.properties) -replace '^mod_version=.*','mod_version=%NEW_VERSION%' | Set-Content -Encoding UTF8 gradle.properties"
 
-call build.bat %MC_SELECTION%
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\build-with-gradle.ps1" %MC_SELECTION%
 if errorlevel 1 exit /b 1
 
 dir /b "releases\v%NEW_VERSION%\*.jar" >nul 2>nul

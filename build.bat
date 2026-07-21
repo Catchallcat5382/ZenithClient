@@ -1,7 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\build-with-gradle.ps1" %*
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\build-with-gradle.ps1" all
 if errorlevel 1 (
   echo.
   echo BUILD FAILED
@@ -9,6 +9,7 @@ if errorlevel 1 (
 ) else (
   echo.
   echo BUILD COMPLETE
-  echo Open releases\latest for the newest mod JAR.
+  echo Built every supported Minecraft version.
+  echo Open releases\latest for the newest mod JARs.
 )
 pause

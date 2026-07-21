@@ -47,12 +47,12 @@ Right-click a module card to open its settings. Numeric settings support both dr
 ## Build
 
 1. Install JDK 25.
-2. Run `build.bat all` to build every compatible target from `minecraft_build_versions.csv`, or run `build.bat 26.2` for one Minecraft version.
-3. The newest compatible jars are copied to `releases/latest/`.
+2. Run `build.bat` to build every supported Minecraft version from `minecraft_build_versions.csv`.
+3. The newest jars are copied to `releases/latest/`.
 4. Versioned jars are copied to `releases/v<version>/<minecraft-version>/`.
-5. The current jar for each working Minecraft version is mirrored into `minecraft_versions/<minecraft-version>/`.
+5. The current jar for each Minecraft version is mirrored into `minecraft_versions/<minecraft-version>/`.
 
-The current source tree builds on the official-named Fabric 26.x line. The matrix includes older 1.21.x and 1.20.x targets so the build can test downward, but it stops at the first incompatible target instead of producing broken jars. At the moment, 1.21.11 is the first blocked target because that Fabric API line uses intermediary access wideners and needs a separate Yarn/intermediary compatibility setup.
+`build.bat` is the recommended build. It currently builds 26.2, 26.1.2, 26.1.1, 26.1, 1.21.11, 1.21.10, 1.21.9, 1.21.8, 1.21.7, 1.21.6, 1.21.5, 1.21.4, 1.21.1, 1.20.6, 1.20.5, 1.20.4, and 1.20.1. For a one-off custom build, run `build_custom.bat 26.2` or `build_custom.bat 1.20.1`.
 
 ## Git and Releases
 

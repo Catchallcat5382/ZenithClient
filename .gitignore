@@ -1,6 +1,7 @@
 .gradle/
 .gradle-bootstrap/
 .multi-version-logs/
+.generated-legacy-client/
 build/
 run/
 .idea/
