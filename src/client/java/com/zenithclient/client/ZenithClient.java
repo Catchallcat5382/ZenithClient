@@ -47,7 +47,8 @@ public final class ZenithClient implements ClientModInitializer {
     private static boolean zenithNightVision;
     private static boolean flightWasActive;
     private static final List<BlockPos> HIGHLIGHTED_BLOCKS = new ArrayList<>();
-    private static final boolean[] KEY_STATES = new boolean[20];
+    private static final List<BlockPos> XRAY_OUTLINE_BLOCKS = new ArrayList<>();
+    private static final boolean[] KEY_STATES = new boolean[23];
     private static boolean jumpWasDown;
     private static boolean menuKeyWasDown;
     private static String toggleNotice = "";
@@ -57,8 +58,10 @@ public final class ZenithClient implements ClientModInitializer {
     private static int lastBlockScanRadius = -1;
     private static boolean lastXrayState = CONFIG.xray;
     private static boolean initialXrayRefreshDone;
+    private static BlockPos lastXrayOutlineOrigin;
     private static Vec3 freecamPosition;
     private static int restoreSwapSlot = -1;
+    private static int restoreSwapAfterTick = -1;
     private static int lastAuraAttackTick;
 
     public static ZenithConfig getConfig() { return CONFIG; }
@@ -102,8 +105,13 @@ public final class ZenithClient implements ClientModInitializer {
         if (client.player == null || client.level == null) return;
         ticks++;
         updateFreecam(client);
+        if (restoreSwapSlot >= 0 && ticks >= restoreSwapAfterTick) restoreAttributeSwap(client);
         if (!CONFIG.trajectoryPreview) setTrajectoryTarget(null);
-        if (!CONFIG.xray) initialXrayRefreshDone = false;
+        if (!CONFIG.xray) {
+            initialXrayRefreshDone = false;
+            if (!XRAY_OUTLINE_BLOCKS.isEmpty()) XRAY_OUTLINE_BLOCKS.clear();
+            lastXrayOutlineOrigin = null;
+        }
 
         if (CONFIG.autoSprint && client.options.keyUp.isDown() && !client.player.isCrouching()) {
             client.player.setSprinting(true);
@@ -116,6 +124,12 @@ public final class ZenithClient implements ClientModInitializer {
         if (CONFIG.xray != lastXrayState) {
             lastXrayState = CONFIG.xray;
             refreshWorldRenderer();
+        }
+        if (CONFIG.xray) {
+            BlockPos origin = client.player.blockPosition();
+            if (lastXrayOutlineOrigin == null || blockDistanceSquared(lastXrayOutlineOrigin, origin) >= 64 || ticks % 80 == 0) {
+                refreshXrayOutlines(client);
+            }
         }
 
         if (CONFIG.blockHighlights) {
@@ -147,7 +161,7 @@ public final class ZenithClient implements ClientModInitializer {
         double pitch = Math.toRadians(client.player.getXRot());
         Vec3 look = new Vec3(-Math.sin(yaw) * Math.cos(pitch), -Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)).normalize();
         Vec3 side = new Vec3(Math.cos(yaw), 0.0, Math.sin(yaw)).normalize();
-        freecamPosition = freecamPosition.add(look.scale(forward * speed)).add(side.scale(right * speed)).add(0.0, vertical * speed, 0.0);
+        freecamPosition = freecamPosition.add(look.scale(forward * speed)).add(side.scale(-right * speed)).add(0.0, vertical * speed, 0.0);
         client.player.setDeltaMovement(0.0, 0.0, 0.0);
         client.player.fallDistance = 0.0F;
     }
@@ -216,6 +230,21 @@ public final class ZenithClient implements ClientModInitializer {
 
         // No Slow / No Stun are handled by version-matched mixins. Do not overwrite
         // horizontal velocity here; doing that caused reversed controls and drift.
+        if (CONFIG.speed && !CONFIG.flight) {
+            double forward = (client.options.keyUp.isDown() ? 1.0 : 0.0) - (client.options.keyDown.isDown() ? 1.0 : 0.0);
+            double right = (client.options.keyRight.isDown() ? 1.0 : 0.0) - (client.options.keyLeft.isDown() ? 1.0 : 0.0);
+            double length = Math.hypot(forward, right);
+            if (length > 0.0) {
+                forward /= length;
+                right /= length;
+                double yaw = Math.toRadians(client.player.getYRot());
+                double sin = Math.sin(yaw);
+                double cos = Math.cos(yaw);
+                double speed = Math.max(0.1, Math.min(10.0, CONFIG.speedAmount)) * 0.12;
+                Vec3 motion = client.player.getDeltaMovement();
+                client.player.setDeltaMovement((-sin * forward - cos * right) * speed, motion.y, (cos * forward - sin * right) * speed);
+            }
+        }
 
         if (CONFIG.airJump) {
             boolean jumpDown = client.options.keyJump.isDown();
@@ -255,7 +284,17 @@ public final class ZenithClient implements ClientModInitializer {
     public static void beforeAttack(Entity target) {
         Minecraft client = Minecraft.getInstance();
         prepareAttributeSwap(client);
-        if (!CONFIG.criticals || client.player == null || target == null) return;
+        if (client.player == null || target == null) return;
+        if (CONFIG.maceKill && isMace(client.player.getMainHandItem())) {
+            double x = client.player.getX();
+            double y = client.player.getY();
+            double z = client.player.getZ();
+            double height = Math.max(4.0, Math.min(200.0, CONFIG.maceKillHeight));
+            sendMovementPacketReflectively("Pos", x, y + height, z, false);
+            sendMovementPacketReflectively("Pos", x, y, z, false);
+            client.player.fallDistance = (float) height;
+        }
+        if (!CONFIG.criticals) return;
         if (!client.player.onGround() || client.player.isInWater() || client.player.isInLava()
                 || client.player.isCrouching() || client.player.getAbilities().flying) return;
 
@@ -271,8 +310,7 @@ public final class ZenithClient implements ClientModInitializer {
 
     /** Called at the end of the vanilla attack method by CriticalsMixin. */
     public static void afterAttack() {
-        Minecraft client = Minecraft.getInstance();
-        restoreAttributeSwap(client);
+        if (restoreSwapSlot >= 0) restoreSwapAfterTick = ticks + 1;
     }
 
     private static void prepareAttributeSwap(Minecraft client) {
@@ -282,6 +320,7 @@ public final class ZenithClient implements ClientModInitializer {
         int current = selectedHotbarSlot(client);
         if (wanted == current) return;
         restoreSwapSlot = current;
+        restoreSwapAfterTick = ticks + 1;
         setSelectedHotbarSlot(client, wanted);
         client.player.connection.send(new ServerboundSetCarriedItemPacket(wanted));
     }
@@ -293,8 +332,13 @@ public final class ZenithClient implements ClientModInitializer {
         }
         int slot = restoreSwapSlot;
         restoreSwapSlot = -1;
+        restoreSwapAfterTick = -1;
         setSelectedHotbarSlot(client, slot);
         client.player.connection.send(new ServerboundSetCarriedItemPacket(slot));
+    }
+
+    private static boolean isMace(net.minecraft.world.item.ItemStack stack) {
+        return stack != null && !stack.isEmpty() && BuiltInRegistries.ITEM.getKey(stack.getItem()).toString().endsWith(":mace");
     }
 
     private static int selectedHotbarSlot(Minecraft client) {
@@ -388,7 +432,8 @@ public final class ZenithClient implements ClientModInitializer {
                 CONFIG.flightKey, CONFIG.autoSprintKey, CONFIG.fullbrightKey,
                 CONFIG.showFpsKey, CONFIG.showCoordinatesKey, CONFIG.xrayKey,
                 CONFIG.noSlowKey, CONFIG.noStunKey, CONFIG.noFallKey, CONFIG.criticalsKey, CONFIG.autoTotemKey,
-                CONFIG.attributeSwapKey, CONFIG.killAuraKey, CONFIG.airJumpKey, CONFIG.freecamKey
+                CONFIG.attributeSwapKey, CONFIG.killAuraKey, CONFIG.reachKey, CONFIG.speedKey, CONFIG.maceKillKey,
+                CONFIG.airJumpKey, CONFIG.freecamKey
         };
 
         for (int i = 0; i < keys.length; i++) {
@@ -417,15 +462,18 @@ public final class ZenithClient implements ClientModInitializer {
             case 14 -> CONFIG.autoTotem = !CONFIG.autoTotem;
             case 15 -> CONFIG.attributeSwap = !CONFIG.attributeSwap;
             case 16 -> CONFIG.killAura = !CONFIG.killAura;
-            case 17 -> CONFIG.airJump = !CONFIG.airJump;
-            case 18 -> CONFIG.freecam = !CONFIG.freecam;
+            case 17 -> CONFIG.reach = !CONFIG.reach;
+            case 18 -> CONFIG.speed = !CONFIG.speed;
+            case 19 -> CONFIG.maceKill = !CONFIG.maceKill;
+            case 20 -> CONFIG.airJump = !CONFIG.airJump;
+            case 21 -> CONFIG.freecam = !CONFIG.freecam;
             default -> { return; }
         }
         CONFIG.save();
         sendToggleMessage(index);
         if (index == 4 && !CONFIG.flight) stopFlightMotion();
         if (index == 9) refreshWorldRenderer();
-        if (index == 18 && !CONFIG.freecam) freecamPosition = null;
+        if (index == 21 && !CONFIG.freecam) freecamPosition = null;
     }
 
     private static void runKillAura(Minecraft client) {
@@ -434,7 +482,7 @@ public final class ZenithClient implements ClientModInitializer {
         if (client.player.getAttackStrengthScale(0.0F) < 0.95F) return;
         if (ticks - lastAuraAttackTick < 2) return;
 
-        double range = Math.max(1.0, Math.min(20.0, Math.max(CONFIG.killAuraRange, CONFIG.reachDistance)));
+        double range = CONFIG.infiniteReach ? 20.0 : Math.max(1.0, Math.min(20.0, Math.max(CONFIG.killAuraRange, CONFIG.reach ? CONFIG.reachDistance : CONFIG.killAuraRange)));
         double rangeSq = range * range;
         Entity best = null;
         double bestDistance = Double.MAX_VALUE;
@@ -475,7 +523,7 @@ public final class ZenithClient implements ClientModInitializer {
         int centerX = client.player.blockPosition().getX() >> 4;
         int centerY = client.player.blockPosition().getY() >> 4;
         int centerZ = client.player.blockPosition().getZ() >> 4;
-        int horizontalRadius = Math.max(2, Math.min(8, client.options.renderDistance().get()));
+        int horizontalRadius = Math.max(2, client.options.renderDistance().get());
         int minSectionY = levelMinY(client) >> 4;
         int maxSectionY = (levelMaxY(client) - 1) >> 4;
 
@@ -532,23 +580,10 @@ public final class ZenithClient implements ClientModInitializer {
         if (message == null || !message.startsWith(".")) return false;
         String[] parts = message.trim().split("\\s+");
         String command = parts[0].toLowerCase(Locale.ROOT);
-        if (command.equals(".entityesp")) {
-            setSearchFilter("entity", parts);
+        if (!command.equals(".autovaultclip")) {
+            warn("Unknown command. Available: .autovaultclip down | up | highest");
             return true;
         }
-        if (command.equals(".blockesp")) {
-            setSearchFilter("block", parts);
-            return true;
-        }
-        if (command.equals(".xrayblocks")) {
-            setSearchFilter("xray", parts);
-            return true;
-        }
-        if (command.equals(".killaura")) {
-            setSearchFilter("aura", parts);
-            return true;
-        }
-        if (!command.equals(".autovaultclip")) return false;
         String mode = parts.length >= 2 ? parts[1].toLowerCase(Locale.ROOT) : "down";
         if (!mode.equals("down") && !mode.equals("up") && !mode.equals("highest")) {
             warn("Usage: .autovaultclip down | up | highest");
@@ -556,6 +591,27 @@ public final class ZenithClient implements ClientModInitializer {
         }
         autoVaultClip(mode);
         return true;
+    }
+
+    private static void refreshXrayOutlines(Minecraft client) {
+        XRAY_OUTLINE_BLOCKS.clear();
+        if (client.player == null || client.level == null || !CONFIG.xray) return;
+        BlockPos origin = client.player.blockPosition();
+        int radius = Math.max(8, Math.min(192, client.options.renderDistance().get() * 16));
+        int minY = levelMinY(client);
+        int maxY = levelMaxY(client);
+        int stride = radius > 80 ? 4 : 3;
+        int maxBlocks = radius > 96 ? 1300 : 900;
+        for (int x = -radius; x <= radius && XRAY_OUTLINE_BLOCKS.size() < maxBlocks; x += stride) {
+            for (int z = -radius; z <= radius && XRAY_OUTLINE_BLOCKS.size() < maxBlocks; z += stride) {
+                for (int y = Math.max(minY, origin.getY() - 48); y <= Math.min(maxY, origin.getY() + 48) && XRAY_OUTLINE_BLOCKS.size() < maxBlocks; y += stride) {
+                    BlockPos pos = new BlockPos(origin.getX() + x, y, origin.getZ() + z);
+                    Block block = client.level.getBlockState(pos).getBlock();
+                    if (block != Blocks.AIR && XrayHooks.isBlocked(block)) XRAY_OUTLINE_BLOCKS.add(pos.immutable());
+                }
+            }
+        }
+        lastXrayOutlineOrigin = origin.immutable();
     }
 
     private static void setSearchFilter(String type, String[] parts) {
@@ -855,7 +911,7 @@ public final class ZenithClient implements ClientModInitializer {
     private static void renderHud(net.minecraft.client.gui.GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
         Minecraft client = Minecraft.getInstance();
         if (client.player == null) return;
-        ScreenSpaceVisualRenderer.render(graphics, client, deltaTracker, CONFIG, HIGHLIGHTED_BLOCKS);
+        ScreenSpaceVisualRenderer.render(graphics, client, deltaTracker, CONFIG, HIGHLIGHTED_BLOCKS, XRAY_OUTLINE_BLOCKS);
         int y = 6;
         if (CONFIG.showFps) {
             graphics.text(client.font, "Zenith | " + client.getFps() + " FPS", 6, y,
@@ -897,8 +953,11 @@ public final class ZenithClient implements ClientModInitializer {
             case 14 -> { name = "Auto Totem"; enabled = CONFIG.autoTotem; }
             case 15 -> { name = "Attribute Swap"; enabled = CONFIG.attributeSwap; }
             case 16 -> { name = "Kill Aura"; enabled = CONFIG.killAura; }
-            case 17 -> { name = "Air Jump"; enabled = CONFIG.airJump; }
-            case 18 -> { name = "Freecam"; enabled = CONFIG.freecam; }
+            case 17 -> { name = "Reach"; enabled = CONFIG.reach; }
+            case 18 -> { name = "Speed"; enabled = CONFIG.speed; }
+            case 19 -> { name = "Mace Kill"; enabled = CONFIG.maceKill; }
+            case 20 -> { name = "Air Jump"; enabled = CONFIG.airJump; }
+            case 21 -> { name = "Freecam"; enabled = CONFIG.freecam; }
             default -> { return; }
         }
         net.minecraft.network.chat.MutableComponent message = net.minecraft.network.chat.Component.literal("[")

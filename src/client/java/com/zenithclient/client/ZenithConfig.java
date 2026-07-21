@@ -44,6 +44,10 @@ public final class ZenithConfig {
     public boolean airJump = false;
     public boolean attributeSwap = false;
     public boolean killAura = false;
+    public boolean reach = false;
+    public boolean infiniteReach = false;
+    public boolean speed = false;
+    public boolean maceKill = false;
     public boolean freecam = false;
     public int xrayOpacity = 0;
     public XrayMode xrayMode = XrayMode.ORES;
@@ -78,6 +82,8 @@ public final class ZenithConfig {
     public int attributeSwapSlot = 1;
     public double killAuraRange = 4.5;
     public double reachDistance = 4.5;
+    public double speedAmount = 1.5;
+    public double maceKillHeight = 80.0;
     public double freecamSpeed = 1.0;
 
     // Each module has its own optional toggle key. -1 means unbound.
@@ -99,6 +105,9 @@ public final class ZenithConfig {
     public int airJumpKey = -1;
     public int attributeSwapKey = -1;
     public int killAuraKey = -1;
+    public int reachKey = -1;
+    public int speedKey = -1;
+    public int maceKillKey = -1;
     public int freecamKey = -1;
 
     // Comma-separated entity type filters. Empty means use the selected category.
@@ -142,6 +151,8 @@ public final class ZenithConfig {
         attributeSwapSlot = (int) clamp(attributeSwapSlot, 1, 9, 1);
         killAuraRange = clamp(killAuraRange, 1.0, 20.0, 4.5);
         reachDistance = clamp(reachDistance, 3.0, 20.0, 4.5);
+        speedAmount = clamp(speedAmount, 0.1, 10.0, 1.5);
+        maceKillHeight = clamp(maceKillHeight, 4.0, 200.0, 80.0);
         freecamSpeed = clamp(freecamSpeed, 0.1, 10.0, 1.0);
     }
 

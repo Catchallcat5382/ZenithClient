@@ -16,18 +16,20 @@ ZenithClient is a client-side Fabric utility mod for Minecraft 26.2 built with J
 - Projectile ESP: exact projectile glow outline, labels, color, range, and tracers.
 - Block ESP: configurable block group, color, fill opacity, radius, and cached low-lag scanning.
 - Trajectories: projectile path preview with quality, color, thickness, and start-distance controls.
-- X-Ray: safe chunk-rebuild toggle that shows selected valuable blocks while hiding non-target block geometry.
-- Freecam: independent camera movement with configurable speed.
+- X-Ray: safe chunk-rebuild toggle that shows selected ores/liquids, hides non-target block geometry across render distance, and adds faint outlines for hidden blocks.
+- Freecam: independent spectator-style camera movement with configurable speed and reduced fluid-fog glitches.
 
 ### Combat
 
 - Criticals.
 - Auto Totem: refills the offhand with a totem from inventory when one is available.
 - Attribute Swap: temporarily swaps to a selected hotbar slot while attacking, then swaps back.
+- Kill Aura, Reach, and Mace Kill controls with right-click settings pages.
 
 ### Movement
 
 - Flight with horizontal speed, vertical speed, and sprint multiplier.
+- Speed with configurable movement amount.
 - Auto Sprint.
 - No Slow.
 - No Stun.

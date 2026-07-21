@@ -27,13 +27,14 @@ public final class ScreenSpaceVisualRenderer {
     private ScreenSpaceVisualRenderer() { }
 
     public static void render(GuiGraphicsExtractor graphics, Minecraft client, DeltaTracker deltaTracker, ZenithConfig config,
-                              List<BlockPos> highlightedBlocks) {
+                              List<BlockPos> highlightedBlocks, List<BlockPos> xrayOutlineBlocks) {
         if (client.player == null || client.level == null) return;
 
         float tickDelta = deltaTracker.getGameTimeDeltaPartialTick(true);
         Projection projection = new Projection(client, tickDelta);
         renderEntityOverlays(graphics, client, config, projection, tickDelta);
         if (config.blockHighlights) renderBlocks(graphics, config, projection, highlightedBlocks);
+        if (config.xray) renderXrayOutlines(graphics, projection, xrayOutlineBlocks);
         if (config.trajectoryPreview) renderTrajectory(graphics, client, config, projection);
     }
 
@@ -88,6 +89,18 @@ public final class ScreenSpaceVisualRenderer {
                                      Projection projection, List<BlockPos> blocks) {
         int outline = withAlpha(config.blockOutlineColor, 255);
         for (BlockPos pos : blocks) {
+            ScreenPoint[] corners = projectCorners(projection, new AABB(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1.0, pos.getY() + 1.0, pos.getZ() + 1.0));
+            ScreenRect rect = bounds(corners);
+            if (rect == null || rect.width() < 2 || rect.height() < 2) continue;
+            drawProjectedBox(graphics, corners, outline, 1);
+        }
+    }
+
+    private static void renderXrayOutlines(GuiGraphicsExtractor graphics, Projection projection, List<BlockPos> blocks) {
+        int outline = withAlpha(0xB8B8B8, 80);
+        int rendered = 0;
+        for (BlockPos pos : blocks) {
+            if (rendered++ >= 900) break;
             ScreenPoint[] corners = projectCorners(projection, new AABB(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1.0, pos.getY() + 1.0, pos.getZ() + 1.0));
             ScreenRect rect = bounds(corners);
             if (rect == null || rect.width() < 2 || rect.height() < 2) continue;

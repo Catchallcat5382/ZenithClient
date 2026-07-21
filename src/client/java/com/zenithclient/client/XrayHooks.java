@@ -38,6 +38,7 @@ public final class XrayHooks {
     }
 
     public static boolean isWhitelisted(Block block) {
+        if (block == Blocks.WATER || block == Blocks.LAVA) return true;
         String search = ZenithClient.getConfig().xraySearch == null ? "" : ZenithClient.getConfig().xraySearch.trim().toLowerCase(Locale.ROOT);
         if (!search.isEmpty()) {
             String id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(block).toString().toLowerCase(Locale.ROOT);
