@@ -57,8 +57,33 @@ public final class ScreenSpaceVisualRenderer {
             if (point == null) continue;
 
             int outlineColor = player ? config.playerOutlineColor : item ? config.itemEspColor : projectile ? config.projectileEspColor : config.entityOutlineColor;
+            int fillColor = player ? config.playerFillColor : config.entityFillColor;
+            int fillOpacity = player ? config.playerFillOpacity : config.entityFillOpacity;
+            boolean fillEnabled = (player || (!item && !projectile && config.entityFill)) && fillOpacity > 0;
             boolean tracers = player ? config.playerTracers : item ? config.itemTracers : projectile ? config.projectileTracers : config.entityTracers;
             boolean nameTags = player ? config.playerNameTags : item || projectile || config.entityNameTags;
+            ZenithConfig.EspShape shape = player ? config.playerEspShape : config.entityEspShape;
+
+            if (fillEnabled) {
+                ScreenRect rect = bounds(projectCorners(projection, espBox));
+                if (rect != null && rect.width() >= 2 && rect.height() >= 2) {
+                    graphics.fill(rect.minX, rect.minY, rect.maxX + 1, rect.maxY + 1, withAlpha(fillColor, percentToAlpha(fillOpacity)));
+                }
+            }
+
+            if ((player || (!item && !projectile && config.entityOutline)) && shape != null) {
+                int thickness = player ? config.playerOutlineThickness : config.entityOutlineThickness;
+                ScreenPoint[] corners = projectCorners(projection, espBox);
+                ScreenRect rect = bounds(corners);
+                if (rect != null && rect.width() >= 2 && rect.height() >= 2) {
+                    int outline = withAlpha(outlineColor, 235);
+                    switch (shape) {
+                        case BOX_3D -> drawProjectedBox(graphics, corners, outline, Math.max(1, thickness));
+                        case BOX_2D -> drawRect(graphics, rect, outline, Math.max(1, thickness));
+                        case CORNERS -> drawCorners(graphics, rect, outline, Math.max(1, thickness));
+                    }
+                }
+            }
 
             if (tracers) {
                 ScreenPoint from = new ScreenPoint(projection.width / 2, projection.height - 2);
