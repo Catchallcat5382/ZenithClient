@@ -1,5 +1,6 @@
 .gradle/
 .gradle-bootstrap/
+.multi-version-logs/
 build/
 run/
 .idea/
