@@ -47,7 +47,7 @@ if not errorlevel 1 (
 where gh >nul 2>nul
 if not errorlevel 1 (
   set LATEST_JAR=
-  for %%J in ("releases\latest\*.jar") do set LATEST_JAR=%%~fJ
+  for %%J in (releases\latest\*.jar) do set LATEST_JAR=%%~fJ
   if "%LATEST_JAR%"=="" (
     echo No latest jar found in releases\latest.
     exit /b 1
