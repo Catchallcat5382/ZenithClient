@@ -1,0 +1,14 @@
+GNU GENERAL PUBLIC LICENSE
+Version 3, 29 June 2007
+
+ZenithClient includes code and behavior adapted from Meteor Client, which is
+licensed under the GNU General Public License version 3. This source
+distribution is therefore provided under GPL-3.0-only.
+
+The full GPL-3.0 license text is available at:
+https://www.gnu.org/licenses/gpl-3.0.txt
+
+Meteor Client:
+https://github.com/MeteorDevelopment/meteor-client
+
+SPDX-License-Identifier: GPL-3.0-only

@@ -1,0 +1,17 @@
+{
+  "required": true,
+  "package": "com.zenithclient.client.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "ModelBlockRendererMixin",
+    "LocalPlayerNoSlowMixin",
+    "WebBlockNoSlowMixin",
+    "CriticalsMixin",
+    "ServerboundMovePlayerPacketAccessor",
+    "ConnectionMixin",
+    "EntityGlowMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

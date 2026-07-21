@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "zenithclient",
+  "version": "${version}",
+  "name": "ZenithClient",
+  "description": "ZenithClient is a client-side utility mod for cheats.",
+  "authors": ["catchallcat5382"],
+  "contact": {
+    "sources": "https://github.com/Catchallcat5382"
+  },
+  "license": "GPL-3.0-only",
+  "icon": "assets/zenithclient/icon.png",
+  "environment": "client",
+  "mixins": ["zenithclient.mixins.json"],
+  "entrypoints": {
+    "client": ["com.zenithclient.client.ZenithClient"],
+    "modmenu": ["com.zenithclient.client.ZenithModMenu"]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.2",
+    "minecraft": "~26.2",
+    "java": ">=25",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "modmenu": "*"
+  }
+}
