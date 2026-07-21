@@ -17,12 +17,14 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
 import net.minecraft.world.item.Items;
@@ -45,7 +47,7 @@ public final class ZenithClient implements ClientModInitializer {
     private static boolean zenithNightVision;
     private static boolean flightWasActive;
     private static final List<BlockPos> HIGHLIGHTED_BLOCKS = new ArrayList<>();
-    private static final boolean[] KEY_STATES = new boolean[18];
+    private static final boolean[] KEY_STATES = new boolean[20];
     private static boolean jumpWasDown;
     private static boolean menuKeyWasDown;
     private static String toggleNotice = "";
@@ -57,6 +59,7 @@ public final class ZenithClient implements ClientModInitializer {
     private static boolean initialXrayRefreshDone;
     private static Vec3 freecamPosition;
     private static int restoreSwapSlot = -1;
+    private static int lastAuraAttackTick;
 
     public static ZenithConfig getConfig() { return CONFIG; }
 
@@ -109,6 +112,7 @@ public final class ZenithClient implements ClientModInitializer {
         if (CONFIG.flight) applySmoothFlight(client);
         applyMovementUtilities(client);
         if (CONFIG.autoTotem && ticks % 2 == 0) refillTotem(client);
+        if (CONFIG.killAura) runKillAura(client);
         if (CONFIG.xray != lastXrayState) {
             lastXrayState = CONFIG.xray;
             refreshWorldRenderer();
@@ -384,7 +388,7 @@ public final class ZenithClient implements ClientModInitializer {
                 CONFIG.flightKey, CONFIG.autoSprintKey, CONFIG.fullbrightKey,
                 CONFIG.showFpsKey, CONFIG.showCoordinatesKey, CONFIG.xrayKey,
                 CONFIG.noSlowKey, CONFIG.noStunKey, CONFIG.noFallKey, CONFIG.criticalsKey, CONFIG.autoTotemKey,
-                CONFIG.attributeSwapKey, CONFIG.airJumpKey, CONFIG.freecamKey
+                CONFIG.attributeSwapKey, CONFIG.killAuraKey, CONFIG.airJumpKey, CONFIG.freecamKey
         };
 
         for (int i = 0; i < keys.length; i++) {
@@ -412,15 +416,56 @@ public final class ZenithClient implements ClientModInitializer {
             case 13 -> CONFIG.criticals = !CONFIG.criticals;
             case 14 -> CONFIG.autoTotem = !CONFIG.autoTotem;
             case 15 -> CONFIG.attributeSwap = !CONFIG.attributeSwap;
-            case 16 -> CONFIG.airJump = !CONFIG.airJump;
-            case 17 -> CONFIG.freecam = !CONFIG.freecam;
+            case 16 -> CONFIG.killAura = !CONFIG.killAura;
+            case 17 -> CONFIG.airJump = !CONFIG.airJump;
+            case 18 -> CONFIG.freecam = !CONFIG.freecam;
             default -> { return; }
         }
         CONFIG.save();
         sendToggleMessage(index);
         if (index == 4 && !CONFIG.flight) stopFlightMotion();
         if (index == 9) refreshWorldRenderer();
-        if (index == 17 && !CONFIG.freecam) freecamPosition = null;
+        if (index == 18 && !CONFIG.freecam) freecamPosition = null;
+    }
+
+    private static void runKillAura(Minecraft client) {
+        if (client.player == null || client.level == null || client.gameMode == null) return;
+        if (!isWeapon(client.player.getMainHandItem())) return;
+        if (client.player.getAttackStrengthScale(0.0F) < 0.95F) return;
+        if (ticks - lastAuraAttackTick < 2) return;
+
+        double range = Math.max(1.0, Math.min(20.0, Math.max(CONFIG.killAuraRange, CONFIG.reachDistance)));
+        double rangeSq = range * range;
+        Entity best = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (Entity entity : client.level.entitiesForRendering()) {
+            if (!(entity instanceof LivingEntity living) || entity == client.player || !living.isAlive()) continue;
+            if (!matchesAuraTarget(entity)) continue;
+            double distance = entity.distanceToSqr(client.player);
+            if (distance <= rangeSq && distance < bestDistance) {
+                best = entity;
+                bestDistance = distance;
+            }
+        }
+        if (best == null) return;
+        lastAuraAttackTick = ticks;
+        client.gameMode.attack(client.player, best);
+        client.player.swing(InteractionHand.MAIN_HAND);
+    }
+
+    private static boolean isWeapon(net.minecraft.world.item.ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        String id = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString().toLowerCase(Locale.ROOT);
+        return id.contains("sword") || id.contains("axe") || id.contains("mace") || id.contains("trident");
+    }
+
+    private static boolean matchesAuraTarget(Entity entity) {
+        String search = CONFIG.killAuraSearch == null ? "" : CONFIG.killAuraSearch.trim().toLowerCase(Locale.ROOT);
+        if (!search.isEmpty()) {
+            String id = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString().toLowerCase(Locale.ROOT);
+            return matchesRegistrySearch(id, search);
+        }
+        return matchesEntityMode(entity);
     }
 
     public static void refreshWorldRenderer() {
@@ -433,12 +478,11 @@ public final class ZenithClient implements ClientModInitializer {
         int horizontalRadius = Math.max(2, Math.min(8, client.options.renderDistance().get()));
         int minSectionY = levelMinY(client) >> 4;
         int maxSectionY = (levelMaxY(client) - 1) >> 4;
-        int verticalRadius = 4;
 
         try {
             for (int sx = centerX - horizontalRadius; sx <= centerX + horizontalRadius; sx++) {
                 for (int sz = centerZ - horizontalRadius; sz <= centerZ + horizontalRadius; sz++) {
-                    for (int sy = Math.max(minSectionY, centerY - verticalRadius); sy <= Math.min(maxSectionY, centerY + verticalRadius); sy++) {
+                    for (int sy = minSectionY; sy <= maxSectionY; sy++) {
                         client.level.setSectionDirtyWithNeighbors(sx, sy, sz);
                     }
                 }
@@ -488,6 +532,22 @@ public final class ZenithClient implements ClientModInitializer {
         if (message == null || !message.startsWith(".")) return false;
         String[] parts = message.trim().split("\\s+");
         String command = parts[0].toLowerCase(Locale.ROOT);
+        if (command.equals(".entityesp")) {
+            setSearchFilter("entity", parts);
+            return true;
+        }
+        if (command.equals(".blockesp")) {
+            setSearchFilter("block", parts);
+            return true;
+        }
+        if (command.equals(".xrayblocks")) {
+            setSearchFilter("xray", parts);
+            return true;
+        }
+        if (command.equals(".killaura")) {
+            setSearchFilter("aura", parts);
+            return true;
+        }
         if (!command.equals(".autovaultclip")) return false;
         String mode = parts.length >= 2 ? parts[1].toLowerCase(Locale.ROOT) : "down";
         if (!mode.equals("down") && !mode.equals("up") && !mode.equals("highest")) {
@@ -496,6 +556,79 @@ public final class ZenithClient implements ClientModInitializer {
         }
         autoVaultClip(mode);
         return true;
+    }
+
+    private static void setSearchFilter(String type, String[] parts) {
+        if (parts.length < 2 || parts[1].equalsIgnoreCase("help")) {
+            warn("." + commandName(type) + " search <text>, clear, or list <text>");
+            return;
+        }
+        String action = parts[1].toLowerCase(Locale.ROOT);
+        if (action.equals("clear")) {
+            if (type.equals("entity")) CONFIG.entitySearch = "";
+            else if (type.equals("block")) CONFIG.blockSearch = "";
+            else if (type.equals("aura")) CONFIG.killAuraSearch = "";
+            else CONFIG.xraySearch = "";
+            CONFIG.save();
+            refreshHighlightedBlocksIfNeeded();
+            refreshWorldRenderer();
+            warn(type + " filter cleared.");
+            return;
+        }
+        if (action.equals("list")) {
+            String query = joinArgs(parts, 2).toLowerCase(Locale.ROOT);
+            warn(type + " matches: " + registryMatches(type, query, 8));
+            return;
+        }
+        String search = action.equals("search") ? joinArgs(parts, 2) : joinArgs(parts, 1);
+        if (search.isBlank()) {
+            warn("Type a search like ." + commandName(type) + " diamond_ore");
+            return;
+        }
+        if (type.equals("entity")) CONFIG.entitySearch = search;
+        else if (type.equals("block")) CONFIG.blockSearch = search;
+        else if (type.equals("aura")) CONFIG.killAuraSearch = search;
+        else CONFIG.xraySearch = search;
+        CONFIG.save();
+        refreshHighlightedBlocksIfNeeded();
+        refreshWorldRenderer();
+        warn(type + " filter set to: " + search);
+    }
+
+    private static String commandName(String type) {
+        if (type.equals("xray")) return "xrayblocks";
+        if (type.equals("aura")) return "killaura";
+        return type + "esp";
+    }
+
+    private static String joinArgs(String[] parts, int start) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = start; i < parts.length; i++) {
+            if (!builder.isEmpty()) builder.append(' ');
+            builder.append(parts[i]);
+        }
+        return builder.toString().trim();
+    }
+
+    private static String registryMatches(String type, String query, int max) {
+        List<String> matches = new ArrayList<>();
+        if (type.equals("entity") || type.equals("aura")) {
+            BuiltInRegistries.ENTITY_TYPE.keySet().forEach(id -> {
+                String value = id.toString();
+                if ((query.isBlank() || value.contains(query)) && matches.size() < max) matches.add(value);
+            });
+        } else {
+            BuiltInRegistries.BLOCK.keySet().forEach(id -> {
+                String value = id.toString();
+                if ((query.isBlank() || value.contains(query)) && matches.size() < max) matches.add(value);
+            });
+        }
+        return matches.isEmpty() ? "none" : String.join(", ", matches);
+    }
+
+    private static void refreshHighlightedBlocksIfNeeded() {
+        Minecraft client = Minecraft.getInstance();
+        if (client.player != null && client.level != null && CONFIG.blockHighlights) refreshHighlightedBlocks(client);
     }
 
     private static void autoVaultClip(String mode) {
@@ -625,7 +758,7 @@ public final class ZenithClient implements ClientModInitializer {
 
 
     public static boolean matchesEntityMode(Entity entity) {
-        String typeName = entity.getType().toString().toLowerCase(Locale.ROOT);
+        String typeName = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString().toLowerCase(Locale.ROOT);
         String search = CONFIG.entitySearch == null ? "" : CONFIG.entitySearch.trim().toLowerCase(Locale.ROOT);
         if (!search.isEmpty()) {
             for (String token : search.split(",")) {
@@ -650,11 +783,12 @@ public final class ZenithClient implements ClientModInitializer {
         HIGHLIGHTED_BLOCKS.clear();
         if (!CONFIG.blockHighlights) return;
         BlockPos origin = client.player.blockPosition();
-        int radius = Math.max(4, Math.min(24, CONFIG.blockRadius));
+        int radius = Math.max(4, Math.min(128, CONFIG.blockRadius));
         int radiusSquared = radius * radius;
-        for (int x = -radius; x <= radius && HIGHLIGHTED_BLOCKS.size() < 384; x++) {
-            for (int y = -radius; y <= radius && HIGHLIGHTED_BLOCKS.size() < 384; y++) {
-                for (int z = -radius; z <= radius && HIGHLIGHTED_BLOCKS.size() < 384; z++) {
+        int maxBlocks = radius > 48 ? 1536 : 768;
+        for (int x = -radius; x <= radius && HIGHLIGHTED_BLOCKS.size() < maxBlocks; x++) {
+            for (int y = -radius; y <= radius && HIGHLIGHTED_BLOCKS.size() < maxBlocks; y++) {
+                for (int z = -radius; z <= radius && HIGHLIGHTED_BLOCKS.size() < maxBlocks; z++) {
                     if (x * x + y * y + z * z > radiusSquared) continue;
                     BlockPos pos = origin.offset(x, y, z);
                     Block block = client.level.getBlockState(pos).getBlock();
@@ -675,6 +809,8 @@ public final class ZenithClient implements ClientModInitializer {
     }
 
     private static boolean matchesBlockMode(Block block) {
+        String search = CONFIG.blockSearch == null ? "" : CONFIG.blockSearch.trim().toLowerCase(Locale.ROOT);
+        if (!search.isEmpty()) return matchesRegistrySearch(BuiltInRegistries.BLOCK.getKey(block).toString(), search);
         return switch (CONFIG.blockHighlightMode) {
             case VALUABLE_ORES -> isValuableOre(block);
             case ALL_ORES -> isAnyOre(block);
@@ -683,6 +819,15 @@ public final class ZenithClient implements ClientModInitializer {
             case ANCIENT_DEBRIS -> block == Blocks.ANCIENT_DEBRIS;
             case DIAMOND_ORE -> block == Blocks.DIAMOND_ORE || block == Blocks.DEEPSLATE_DIAMOND_ORE;
         };
+    }
+
+    private static boolean matchesRegistrySearch(String id, String search) {
+        String lower = id.toLowerCase(Locale.ROOT);
+        for (String token : search.split(",")) {
+            String wanted = token.trim().toLowerCase(Locale.ROOT);
+            if (!wanted.isEmpty() && lower.contains(wanted)) return true;
+        }
+        return false;
     }
 
     private static boolean isValuableOre(Block block) {
@@ -751,8 +896,9 @@ public final class ZenithClient implements ClientModInitializer {
             case 13 -> { name = "Criticals"; enabled = CONFIG.criticals; }
             case 14 -> { name = "Auto Totem"; enabled = CONFIG.autoTotem; }
             case 15 -> { name = "Attribute Swap"; enabled = CONFIG.attributeSwap; }
-            case 16 -> { name = "Air Jump"; enabled = CONFIG.airJump; }
-            case 17 -> { name = "Freecam"; enabled = CONFIG.freecam; }
+            case 16 -> { name = "Kill Aura"; enabled = CONFIG.killAura; }
+            case 17 -> { name = "Air Jump"; enabled = CONFIG.airJump; }
+            case 18 -> { name = "Freecam"; enabled = CONFIG.freecam; }
             default -> { return; }
         }
         net.minecraft.network.chat.MutableComponent message = net.minecraft.network.chat.Component.literal("[")

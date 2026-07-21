@@ -15,11 +15,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class CameraFreecamMixin {
     @Shadow protected abstract void setPosition(Vec3 position);
     @Shadow protected abstract void setRotation(float yRot, float xRot);
+    @Shadow private boolean detached;
 
     @Inject(method = "update", at = @At("TAIL"))
     private void zenith$applyFreecam(DeltaTracker deltaTracker, CallbackInfo ci) {
         Minecraft client = Minecraft.getInstance();
         if (!ZenithClient.isFreecamActive() || client.player == null) return;
+        this.detached = true;
         this.setPosition(ZenithClient.freecamPosition());
         this.setRotation(client.player.getYRot(), client.player.getXRot());
     }

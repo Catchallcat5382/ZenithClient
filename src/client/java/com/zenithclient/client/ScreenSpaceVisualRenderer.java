@@ -297,10 +297,10 @@ public final class ScreenSpaceVisualRenderer {
         private final double focalLength;
 
         private Projection(Minecraft client, float tickDelta) {
-            Entity camera = client.getCameraEntity() != null ? client.getCameraEntity() : client.player;
-            this.origin = camera.getEyePosition(tickDelta);
-            double yaw = Math.toRadians(camera.getViewYRot(tickDelta));
-            double pitch = Math.toRadians(camera.getViewXRot(tickDelta));
+            net.minecraft.client.Camera camera = client.gameRenderer.mainCamera();
+            this.origin = camera.position();
+            double yaw = Math.toRadians(camera.yRot());
+            double pitch = Math.toRadians(camera.xRot());
             this.forward = new Vec3(-Math.sin(yaw) * Math.cos(pitch), -Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)).normalize();
             Vec3 worldUp = new Vec3(0.0, 1.0, 0.0);
             Vec3 computedRight = forward.cross(worldUp);

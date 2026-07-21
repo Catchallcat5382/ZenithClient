@@ -13,11 +13,11 @@ public final class ZenithConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("zenithclient.json");
 
-    public EntityHighlightMode entityHighlightMode = EntityHighlightMode.ALL_MOBS;
+    public EntityHighlightMode entityHighlightMode = EntityHighlightMode.ALL_ENTITIES;
     public BlockHighlightMode blockHighlightMode = BlockHighlightMode.VALUABLE_ORES;
 
-    public boolean entityHighlights = true;
-    public boolean playerEsp = true;
+    public boolean entityHighlights = false;
+    public boolean playerEsp = false;
     public boolean entityOutline = true;
     public boolean entityFill = true;
     public boolean playerTracers = false;
@@ -30,8 +30,8 @@ public final class ZenithConfig {
     public boolean projectileTracers = false;
     public boolean blockHighlights = false;
     public boolean trajectoryPreview = false;
-    public boolean showFps = true;
-    public boolean showCoordinates = true;
+    public boolean showFps = false;
+    public boolean showCoordinates = false;
     public boolean fullbright = false;
     public boolean autoSprint = false;
     public boolean flight = false;
@@ -43,13 +43,14 @@ public final class ZenithConfig {
     public boolean autoTotem = false;
     public boolean airJump = false;
     public boolean attributeSwap = false;
+    public boolean killAura = false;
     public boolean freecam = false;
     public int xrayOpacity = 0;
     public XrayMode xrayMode = XrayMode.ORES;
     public boolean chatToggleMessages = true;
 
     public int blockRadius = 12;
-    public int entityRange = 96;
+    public int entityRange = 128;
     public int lineDensity = 5;
     public int entityOutlineColor = 0xFF3B30;
     public int playerOutlineColor = 0x00E5FF;
@@ -75,19 +76,21 @@ public final class ZenithConfig {
     public double flightVerticalSpeed = 1.0;
     public double flightSprintMultiplier = 2.0;
     public int attributeSwapSlot = 1;
+    public double killAuraRange = 4.5;
+    public double reachDistance = 4.5;
     public double freecamSpeed = 1.0;
 
     // Each module has its own optional toggle key. -1 means unbound.
-    public int entityHighlightsKey = GLFW.GLFW_KEY_H;
-    public int playerEspKey = GLFW.GLFW_KEY_P;
-    public int blockHighlightsKey = GLFW.GLFW_KEY_J;
-    public int trajectoryPreviewKey = GLFW.GLFW_KEY_K;
-    public int flightKey = GLFW.GLFW_KEY_F;
+    public int entityHighlightsKey = -1;
+    public int playerEspKey = -1;
+    public int blockHighlightsKey = -1;
+    public int trajectoryPreviewKey = -1;
+    public int flightKey = -1;
     public int autoSprintKey = -1;
-    public int fullbrightKey = GLFW.GLFW_KEY_G;
+    public int fullbrightKey = -1;
     public int showFpsKey = -1;
     public int showCoordinatesKey = -1;
-    public int xrayKey = GLFW.GLFW_KEY_Z;
+    public int xrayKey = -1;
     public int noSlowKey = -1;
     public int noStunKey = -1;
     public int noFallKey = -1;
@@ -95,10 +98,14 @@ public final class ZenithConfig {
     public int autoTotemKey = -1;
     public int airJumpKey = -1;
     public int attributeSwapKey = -1;
+    public int killAuraKey = -1;
     public int freecamKey = -1;
 
     // Comma-separated entity type filters. Empty means use the selected category.
     public String entitySearch = "";
+    public String killAuraSearch = "";
+    public String blockSearch = "";
+    public String xraySearch = "";
 
     public int uiAccentColor = 0xFFFF6B35;
     public int uiPanelColor = 0xFF151515;
@@ -124,8 +131,8 @@ public final class ZenithConfig {
         flightVerticalSpeed = clamp(flightVerticalSpeed, 0.1, 10.0, 1.0);
         flightSprintMultiplier = clamp(flightSprintMultiplier, 1.0, 4.0, 2.0);
         xrayOpacity = (int) clamp(xrayOpacity, 0, 255, 0);
-        blockRadius = (int) clamp(blockRadius, 4, 32, 12);
-        entityRange = (int) clamp(entityRange, 8, 256, 96);
+        blockRadius = (int) clamp(blockRadius, 4, 128, 12);
+        entityRange = (int) clamp(entityRange, 8, 512, 128);
         playerFillOpacity = (int) clamp(playerFillOpacity, 0, 100, 14);
         entityFillOpacity = (int) clamp(entityFillOpacity, 0, 100, 18);
         blockFillOpacity = (int) clamp(blockFillOpacity, 0, 100, 10);
@@ -133,6 +140,8 @@ public final class ZenithConfig {
         if (entityEspShape == null) entityEspShape = EspShape.BOX_3D;
         if (xrayMode == null) xrayMode = XrayMode.ORES;
         attributeSwapSlot = (int) clamp(attributeSwapSlot, 1, 9, 1);
+        killAuraRange = clamp(killAuraRange, 1.0, 20.0, 4.5);
+        reachDistance = clamp(reachDistance, 3.0, 20.0, 4.5);
         freecamSpeed = clamp(freecamSpeed, 0.1, 10.0, 1.0);
     }
 

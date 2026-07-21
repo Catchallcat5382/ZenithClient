@@ -8,6 +8,8 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.Shapes;
 
+import java.util.Locale;
+
 /** X-Ray block visibility decisions for ZenithClient. */
 public final class XrayHooks {
     private XrayHooks() { }
@@ -36,6 +38,15 @@ public final class XrayHooks {
     }
 
     public static boolean isWhitelisted(Block block) {
+        String search = ZenithClient.getConfig().xraySearch == null ? "" : ZenithClient.getConfig().xraySearch.trim().toLowerCase(Locale.ROOT);
+        if (!search.isEmpty()) {
+            String id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(block).toString().toLowerCase(Locale.ROOT);
+            for (String token : search.split(",")) {
+                String wanted = token.trim();
+                if (!wanted.isEmpty() && id.contains(wanted)) return true;
+            }
+            return false;
+        }
         return switch (ZenithClient.getConfig().xrayMode) {
             case DIAMOND_DEBRIS -> block == Blocks.DIAMOND_ORE || block == Blocks.DEEPSLATE_DIAMOND_ORE
                     || block == Blocks.ANCIENT_DEBRIS;
