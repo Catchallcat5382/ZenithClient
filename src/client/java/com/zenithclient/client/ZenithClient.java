@@ -425,41 +425,26 @@ public final class ZenithClient implements ClientModInitializer {
 
     public static void refreshWorldRenderer() {
         Minecraft client = Minecraft.getInstance();
-        if (client.levelRenderer == null) return;
+        if (client.level == null || client.player == null) return;
 
-        // Renderer refresh method names have changed across recent Minecraft mappings.
-        // Resolve the available no-argument refresh method at runtime so this project
-        // remains compile-safe on Minecraft 26.2 while still rebuilding X-Ray chunks.
-        String[] refreshMethods = { "resetLevelRenderData", "clearVisibleSections", "allChanged", "reload" };
-        boolean refreshed = false;
-        for (String methodName : refreshMethods) {
-            try {
-                java.lang.reflect.Method method;
-                try {
-                    method = client.levelRenderer.getClass().getMethod(methodName);
-                } catch (NoSuchMethodException publicMissing) {
-                    method = client.levelRenderer.getClass().getDeclaredMethod(methodName);
-                    method.setAccessible(true);
-                }
-                method.invoke(client.levelRenderer);
-                refreshed = true;
-                break;
-            } catch (ReflectiveOperationException ignored) {
-                // Try the next mapped method name.
-            } catch (RuntimeException ignored) {
-                // Keep X-Ray toggles from taking down the client if a renderer
-                // refresh path is temporarily unsafe on a specific version.
-            }
-        }
-        if (refreshed) return;
+        int centerX = client.player.blockPosition().getX() >> 4;
+        int centerY = client.player.blockPosition().getY() >> 4;
+        int centerZ = client.player.blockPosition().getZ() >> 4;
+        int horizontalRadius = Math.max(2, Math.min(8, client.options.renderDistance().get()));
+        int minSectionY = levelMinY(client) >> 4;
+        int maxSectionY = (levelMaxY(client) - 1) >> 4;
+        int verticalRadius = 4;
 
-        // Fallback: changing the render distance to its current value forces the
-        // renderer to reconsider chunk state on versions without the names above.
         try {
-            int renderDistance = client.options.renderDistance().get();
-            client.options.renderDistance().set(renderDistance);
+            for (int sx = centerX - horizontalRadius; sx <= centerX + horizontalRadius; sx++) {
+                for (int sz = centerZ - horizontalRadius; sz <= centerZ + horizontalRadius; sz++) {
+                    for (int sy = Math.max(minSectionY, centerY - verticalRadius); sy <= Math.min(maxSectionY, centerY + verticalRadius); sy++) {
+                        client.level.setSectionDirtyWithNeighbors(sx, sy, sz);
+                    }
+                }
+            }
         } catch (RuntimeException ignored) {
-            // X-Ray remains toggled; chunks will naturally rebuild as the player moves.
+            // Leave X-Ray state alone; chunks will naturally rebuild as the player moves.
         }
     }
 
