@@ -4,7 +4,7 @@
 
 # ZenithClient
 
-ZenithClient is a client-side Fabric utility mod for Minecraft 26.2 built with JDK 25.
+ZenithClient is a client-side Fabric utility mod for Minecraft 26.2 through 1.20.1 built with JDK 25.
 
 ## Features
 
@@ -46,7 +46,7 @@ ZenithClient is a client-side Fabric utility mod for Minecraft 26.2 built with J
 
 ## Controls
 
-Press Right Shift during gameplay to open ZenithClient. Module keybinds only fire while no screen is open, so typing in chat or another text screen will not toggle modules.
+Press Right Shift during gameplay to open ZenithClient. The menu key is ignored on the title screen, and module keybinds only fire while in-world with no screen open, so typing in chat or another text screen will not toggle modules.
 
 Right-click a module card to open its settings. Numeric settings support both dragging the slider and typing an exact value.
 Entity ESP and Kill Aura settings include a `Choose entity` row. Click it, or right-click it, to open the searchable in-game entity picker.

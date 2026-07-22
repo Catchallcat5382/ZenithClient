@@ -97,11 +97,11 @@ public final class ZenithClient implements ClientModInitializer {
     }
 
     private static void tick(Minecraft client) {
-        // Poll the physical menu key as well as the KeyMapping so the GUI can open
-        // from title, pause, inventory, and other non-world screens.
         long window = client.getWindow().handle();
         boolean menuDown = GLFW.glfwGetKey(window, GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS;
-        if ((menuDown && !menuKeyWasDown) || openMenu.consumeClick()) {
+        boolean menuClicked = openMenu.consumeClick();
+        boolean inWorld = client.player != null && client.level != null;
+        if (inWorld && ((menuDown && !menuKeyWasDown) || menuClicked)) {
             Screen screen = currentScreen(client);
             if (screen instanceof ZenithScreen || screen instanceof ModuleSettingsScreen) {
                 client.setScreenAndShow(null);
@@ -115,7 +115,10 @@ public final class ZenithClient implements ClientModInitializer {
         updateFullbright(client);
         updateNoBlindness(client);
 
-        if (client.player == null || client.level == null) return;
+        if (!inWorld) {
+            java.util.Arrays.fill(KEY_STATES, false);
+            return;
+        }
         ticks++;
         updateFreecam(client);
         if (restoreSwapSlot >= 0 && ticks >= restoreSwapAfterTick) restoreAttributeSwap(client);
@@ -455,6 +458,10 @@ public final class ZenithClient implements ClientModInitializer {
     }
 
     private static void handleModuleKeybinds(Minecraft client) {
+        if (client.player == null || client.level == null) {
+            java.util.Arrays.fill(KEY_STATES, false);
+            return;
+        }
         if (currentScreen(client) != null) {
             java.util.Arrays.fill(KEY_STATES, false);
             return;

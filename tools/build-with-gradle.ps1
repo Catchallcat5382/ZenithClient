@@ -66,6 +66,9 @@ function Convert-ToLegacySource {
     $oldOcclusionApi = $veryOldApi -or $script:LegacyMinecraftVersion -eq '1.21.1'
     $oldScrollApi = $script:LegacyMinecraftVersion -eq '1.20.1'
     $identifierApi = $script:LegacyMinecraftVersion -eq '1.21.11'
+    $oldCameraRotationApi = $script:LegacyMinecraftVersion -ne '1.21.11'
+    $oldCameraPositionApi = $veryOldApi -or $script:LegacyMinecraftVersion -in @('1.21.1', '1.21.4', '1.21.5')
+    $oldMobEffectApi = $script:LegacyMinecraftVersion -in @('1.20.1', '1.20.4')
 
     if ($RelativePath -like '*\mixin\ModelBlockRendererMixin.java') {
         return @'
@@ -173,11 +176,23 @@ public abstract class WebBlockNoSlowMixin {
     if ($veryOldApi) {
         $Text = $Text.Replace('import net.minecraft.client.DeltaTracker;', '')
         $Text = $Text.Replace('DeltaTracker deltaTracker', 'float tickDelta')
+        $Text = $Text.Replace('ScreenSpaceVisualRenderer.render(graphics, client, deltaTracker, CONFIG, HIGHLIGHTED_BLOCKS, XRAY_OUTLINE_BLOCKS);', 'ScreenSpaceVisualRenderer.render(graphics, client, tickDelta, CONFIG, HIGHLIGHTED_BLOCKS, XRAY_OUTLINE_BLOCKS);')
         $Text = $Text.Replace('ScreenSpaceVisualRenderer.render(graphics, client, deltaTracker, CONFIG, HIGHLIGHTED_BLOCKS);', 'ScreenSpaceVisualRenderer.render(graphics, client, tickDelta, CONFIG, HIGHLIGHTED_BLOCKS);')
         $Text = $Text.Replace('float tickDelta = deltaTracker.getGameTimeDeltaPartialTick(true);', '')
     }
     if ($oldInputApi) {
         $Text = $Text.Replace('KeyMapping.Category category = KeyMapping.Category.register(ResourceLocation.fromNamespaceAndPath(MOD_ID, "general"));', 'String category = "key.categories.zenithclient";')
+    }
+    if ($oldCameraRotationApi) {
+        $Text = $Text.Replace('camera.yRot()', 'camera.getYRot()')
+        $Text = $Text.Replace('camera.xRot()', 'camera.getXRot()')
+    }
+    if ($oldCameraPositionApi) {
+        $Text = $Text.Replace('camera.position()', 'camera.getPosition()')
+    }
+    if ($oldMobEffectApi) {
+        $Text = $Text.Replace('BuiltInRegistries.MOB_EFFECT.wrapAsHolder(MobEffects.BLINDNESS.value())', 'MobEffects.BLINDNESS')
+        $Text = $Text.Replace('BuiltInRegistries.MOB_EFFECT.wrapAsHolder(MobEffects.DARKNESS.value())', 'MobEffects.DARKNESS')
     }
     $Text = $Text.Replace('HudElementRegistry.attachElementBefore(
                 VanillaHudElements.CHAT,
@@ -211,6 +226,7 @@ public abstract class WebBlockNoSlowMixin {
             $Text = $Text.Replace('super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)', 'super.mouseScrolled(mouseX, mouseY, verticalAmount)')
         }
         $Text = $Text.Replace('public boolean keyPressed(KeyEvent event)', 'public boolean keyPressed(int keyCode, int scanCode, int modifiers)')
+        $Text = $Text.Replace('private void zenith$completeDotCommand(KeyEvent event, CallbackInfoReturnable<Boolean> cir)', 'private void zenith$completeDotCommand(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir)')
         $Text = $Text.Replace('event.key()', 'keyCode')
         $Text = $Text.Replace('super.keyPressed(event)', 'super.keyPressed(keyCode, scanCode, modifiers)')
         $Text = $Text.Replace('public boolean charTyped(CharacterEvent input)', 'public boolean charTyped(char codePoint, int modifiers)')

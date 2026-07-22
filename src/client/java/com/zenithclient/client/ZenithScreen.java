@@ -113,16 +113,17 @@ public final class ZenithScreen extends Screen {
             g.fill(x, y, x + w, y + 1, 0x66FFFFFF);
             g.fill(x, y + h - 1, x + w, y + h, 0x33000000);
         }
-        g.text(font, moduleName(m), x + 12, y + 9, enabled ? 0xFFFFFFFF : 0xFFD4D4D4, true);
+        int textMax = Math.max(48, w - 54);
+        g.text(font, fit(moduleName(m), textMax), x + 12, y + 9, enabled ? 0xFFFFFFFF : 0xFFD4D4D4, true);
         g.text(font, enabled ? "ENABLED" : "DISABLED", x + 12, y + 23, enabled ? 0xFFBFFFC9 : 0xFF888888, false);
-        int sx = x + w - 32;
-        int sy = y + 11;
-        int track = enabled ? 0xFF1F1F1F : 0xFF555555;
-        g.fill(sx, sy, sx + 22, sy + 12, track);
-        g.fill(sx + 1, sy + 1, sx + 21, sy + 11, enabled ? accent : 0xFF6A6A6A);
-        int knobX = enabled ? sx + 12 : sx + 2;
-        g.fill(knobX, sy + 2, knobX + 8, sy + 10, 0xFFFFFFFF);
-        g.fill(knobX + 1, sy + 3, knobX + 7, sy + 9, enabled ? 0xFFEFEFEF : 0xFFCFCFCF);
+        int sx = x + w - 38;
+        int sy = y + 10;
+        g.fill(sx - 2, sy - 2, sx + 30, sy + 16, 0x66000000);
+        g.fill(sx, sy, sx + 26, sy + 14, enabled ? alpha(accent, 92) : 0xFF4D4D4D);
+        g.fill(sx + 1, sy + 1, sx + 25, sy + 13, enabled ? alpha(accent, 100) : 0xFF666666);
+        int knobX = enabled ? sx + 13 : sx + 2;
+        g.fill(knobX, sy + 2, knobX + 11, sy + 12, 0xFFFFFFFF);
+        g.fill(knobX + 1, sy + 3, knobX + 10, sy + 11, enabled ? 0xFFEFEFEF : 0xFFCFCFCF);
         hitboxes.add(new Hitbox(HitType.MODULE, m.ordinal(), x, y, w, h));
     }
 
@@ -302,6 +303,16 @@ public final class ZenithScreen extends Screen {
     private static int alpha(int rgb, int percent) { return (Math.max(0, Math.min(255, Math.round(percent * 2.55f))) << 24) | (rgb & 0xFFFFFF); }
     private static int nextThemeColor(int color) { int[] a={0xFFFF6B35,0xFFB00020,0xFF9C27B0,0xFF00BFA5,0xFFFFC107,0xFFFFFFFF}; for(int i=0;i<a.length;i++)if(a[i]==color)return a[(i+1)%a.length];return a[0]; }
     private static String colorName(int c) { return String.format("#%06X", c & 0xFFFFFF); }
+    private String fit(String text, int maxWidth) {
+        if (font.width(text) <= maxWidth) return text;
+        String suffix = "...";
+        int suffixWidth = font.width(suffix);
+        String clipped = text;
+        while (!clipped.isEmpty() && font.width(clipped) + suffixWidth > maxWidth) {
+            clipped = clipped.substring(0, clipped.length() - 1);
+        }
+        return clipped.isEmpty() ? suffix : clipped + suffix;
+    }
 
     @Override
     public void onClose() {
