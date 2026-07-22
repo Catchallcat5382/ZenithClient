@@ -143,8 +143,8 @@ public final class ZenithClient implements ClientModInitializer {
         }
         if (CONFIG.xray) {
             BlockPos origin = client.player.blockPosition();
-            boolean moved = lastXrayOutlineOrigin == null || blockDistanceSquared(lastXrayOutlineOrigin, origin) >= 64;
-            if (moved || ticks % 40 == 0 || XRAY_OUTLINE_BLOCKS.isEmpty()) refreshXrayOutlines(client);
+            boolean moved = lastXrayOutlineOrigin == null || blockDistanceSquared(lastXrayOutlineOrigin, origin) >= 256;
+            if (moved || ticks % 100 == 0 || XRAY_OUTLINE_BLOCKS.isEmpty()) refreshXrayOutlines(client);
         }
 
         if (CONFIG.blockHighlights) {
@@ -568,6 +568,8 @@ public final class ZenithClient implements ClientModInitializer {
     public static void refreshWorldRenderer() {
         Minecraft client = Minecraft.getInstance();
         if (client.level == null || client.player == null) return;
+        refreshXrayOutlines(client);
+        if (CONFIG.xray) return;
 
         int centerX = client.player.blockPosition().getX() >> 4;
         int centerY = client.player.blockPosition().getY() >> 4;
@@ -646,14 +648,19 @@ public final class ZenithClient implements ClientModInitializer {
         XRAY_OUTLINE_BLOCKS.clear();
         if (client.player == null || client.level == null || !CONFIG.xray) return;
         BlockPos origin = client.player.blockPosition();
-        int radius = Math.max(16, Math.min(96, client.options.renderDistance().get() * 16));
+        int radius = Math.max(12, Math.min(40, client.options.renderDistance().get() * 6));
         int minY = levelMinY(client);
         int maxY = levelMaxY(client);
-        int maxBlocks = 4000;
-        for (int x = -radius; x <= radius && XRAY_OUTLINE_BLOCKS.size() < maxBlocks; x++) {
-            for (int z = -radius; z <= radius && XRAY_OUTLINE_BLOCKS.size() < maxBlocks; z++) {
+        int minScanY = Math.max(minY, origin.getY() - 48);
+        int maxScanY = Math.min(maxY, origin.getY() + 48);
+        int maxBlocks = 650;
+        int checked = 0;
+        int maxChecks = radius > 28 ? 180000 : 90000;
+        for (int x = -radius; x <= radius && XRAY_OUTLINE_BLOCKS.size() < maxBlocks && checked < maxChecks; x++) {
+            for (int z = -radius; z <= radius && XRAY_OUTLINE_BLOCKS.size() < maxBlocks && checked < maxChecks; z++) {
                 if (x * x + z * z > radius * radius) continue;
-                for (int y = minY; y < maxY && XRAY_OUTLINE_BLOCKS.size() < maxBlocks; y++) {
+                for (int y = minScanY; y < maxScanY && XRAY_OUTLINE_BLOCKS.size() < maxBlocks && checked < maxChecks; y++) {
+                    checked++;
                     BlockPos pos = new BlockPos(origin.getX() + x, y, origin.getZ() + z);
                     Block block = client.level.getBlockState(pos).getBlock();
                     if (block != Blocks.AIR && XrayHooks.isWhitelisted(block)) XRAY_OUTLINE_BLOCKS.add(pos.immutable());

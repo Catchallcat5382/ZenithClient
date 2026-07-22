@@ -100,7 +100,7 @@ public final class ScreenSpaceVisualRenderer {
         int outline = withAlpha(0xFFFF6B35, 230);
         int rendered = 0;
         for (BlockPos pos : blocks) {
-            if (rendered++ >= 4000) break;
+            if (rendered++ >= 650) break;
             ScreenPoint[] corners = projectCorners(projection, new AABB(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1.0, pos.getY() + 1.0, pos.getZ() + 1.0));
             ScreenRect rect = bounds(corners);
             if (rect == null || rect.width() < 2 || rect.height() < 2) continue;
