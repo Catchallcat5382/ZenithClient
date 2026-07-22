@@ -11,7 +11,8 @@
     "ConnectionMixin",
     "EntityGlowMixin",
     "ChatCommandMixin",
-    "CameraFreecamMixin"
+    "CameraFreecamMixin",
+    "NoFireOverlayMixin"
   ],
   "injectors": {
     "defaultRequire": 1

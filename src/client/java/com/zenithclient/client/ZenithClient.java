@@ -49,7 +49,7 @@ public final class ZenithClient implements ClientModInitializer {
     private static boolean flightWasActive;
     private static final List<BlockPos> HIGHLIGHTED_BLOCKS = new ArrayList<>();
     private static final List<BlockPos> XRAY_OUTLINE_BLOCKS = new ArrayList<>();
-    private static final boolean[] KEY_STATES = new boolean[24];
+    private static final boolean[] KEY_STATES = new boolean[26];
     private static boolean jumpWasDown;
     private static boolean menuKeyWasDown;
     private static String toggleNotice = "";
@@ -114,6 +114,7 @@ public final class ZenithClient implements ClientModInitializer {
 
         handleModuleKeybinds(client);
         updateFullbright(client);
+        updateNoBlindness(client);
 
         if (client.player == null || client.level == null) return;
         ticks++;
@@ -201,6 +202,16 @@ public final class ZenithClient implements ClientModInitializer {
                 client.player.removeEffect(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(MobEffects.NIGHT_VISION.value()));
                 zenithNightVision = false;
             }
+        }
+    }
+
+    private static void updateNoBlindness(Minecraft client) {
+        if (!CONFIG.noBlindness || client.player == null) return;
+        client.player.removeEffect(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(MobEffects.BLINDNESS.value()));
+        try {
+            client.player.removeEffect(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(MobEffects.DARKNESS.value()));
+        } catch (RuntimeException ignored) {
+            // Older targets may not expose Darkness the same way.
         }
     }
 
@@ -302,7 +313,7 @@ public final class ZenithClient implements ClientModInitializer {
             double x = client.player.getX();
             double y = client.player.getY();
             double z = client.player.getZ();
-            double height = Math.max(4.0, Math.min(200.0, CONFIG.maceKillHeight));
+            double height = Math.max(4.0, Math.min(10000.0, CONFIG.maceKillHeight));
             sendMovementPacketReflectively("Pos", x, y + height, z, false);
             sendMovementPacketReflectively("Pos", x, y, z, false);
             client.player.fallDistance = (float) height;
@@ -461,7 +472,7 @@ public final class ZenithClient implements ClientModInitializer {
         int[] keys = {
                 CONFIG.playerEspKey, CONFIG.entityHighlightsKey, CONFIG.blockHighlightsKey, CONFIG.trajectoryPreviewKey,
                 CONFIG.flightKey, CONFIG.autoSprintKey, CONFIG.fullbrightKey,
-                CONFIG.showFpsKey, CONFIG.showCoordinatesKey, CONFIG.xrayKey,
+                CONFIG.noBlindnessKey, CONFIG.noFireOverlayKey, CONFIG.showFpsKey, CONFIG.showCoordinatesKey, CONFIG.xrayKey,
                 CONFIG.noSlowKey, CONFIG.noStunKey, CONFIG.noFallKey, CONFIG.criticalsKey, CONFIG.autoTotemKey,
                 CONFIG.attributeSwapKey, CONFIG.killAuraKey, CONFIG.reachKey, CONFIG.infiniteReachKey, CONFIG.speedKey, CONFIG.maceKillKey, CONFIG.superPunchKey,
                 CONFIG.airJumpKey, CONFIG.freecamKey
@@ -483,30 +494,32 @@ public final class ZenithClient implements ClientModInitializer {
             case 4 -> CONFIG.flight = !CONFIG.flight;
             case 5 -> CONFIG.autoSprint = !CONFIG.autoSprint;
             case 6 -> CONFIG.fullbright = !CONFIG.fullbright;
-            case 7 -> CONFIG.showFps = !CONFIG.showFps;
-            case 8 -> CONFIG.showCoordinates = !CONFIG.showCoordinates;
-            case 9 -> CONFIG.xray = !CONFIG.xray;
-            case 10 -> CONFIG.noSlow = !CONFIG.noSlow;
-            case 11 -> CONFIG.noStun = !CONFIG.noStun;
-            case 12 -> CONFIG.noFall = !CONFIG.noFall;
-            case 13 -> CONFIG.criticals = !CONFIG.criticals;
-            case 14 -> CONFIG.autoTotem = !CONFIG.autoTotem;
-            case 15 -> CONFIG.attributeSwap = !CONFIG.attributeSwap;
-            case 16 -> CONFIG.killAura = !CONFIG.killAura;
-            case 17 -> CONFIG.reach = !CONFIG.reach;
-            case 18 -> CONFIG.infiniteReach = !CONFIG.infiniteReach;
-            case 19 -> CONFIG.speed = !CONFIG.speed;
-            case 20 -> CONFIG.maceKill = !CONFIG.maceKill;
-            case 21 -> CONFIG.superPunch = !CONFIG.superPunch;
-            case 22 -> CONFIG.airJump = !CONFIG.airJump;
-            case 23 -> CONFIG.freecam = !CONFIG.freecam;
+            case 7 -> CONFIG.noBlindness = !CONFIG.noBlindness;
+            case 8 -> CONFIG.noFireOverlay = !CONFIG.noFireOverlay;
+            case 9 -> CONFIG.showFps = !CONFIG.showFps;
+            case 10 -> CONFIG.showCoordinates = !CONFIG.showCoordinates;
+            case 11 -> CONFIG.xray = !CONFIG.xray;
+            case 12 -> CONFIG.noSlow = !CONFIG.noSlow;
+            case 13 -> CONFIG.noStun = !CONFIG.noStun;
+            case 14 -> CONFIG.noFall = !CONFIG.noFall;
+            case 15 -> CONFIG.criticals = !CONFIG.criticals;
+            case 16 -> CONFIG.autoTotem = !CONFIG.autoTotem;
+            case 17 -> CONFIG.attributeSwap = !CONFIG.attributeSwap;
+            case 18 -> CONFIG.killAura = !CONFIG.killAura;
+            case 19 -> CONFIG.reach = !CONFIG.reach;
+            case 20 -> CONFIG.infiniteReach = !CONFIG.infiniteReach;
+            case 21 -> CONFIG.speed = !CONFIG.speed;
+            case 22 -> CONFIG.maceKill = !CONFIG.maceKill;
+            case 23 -> CONFIG.superPunch = !CONFIG.superPunch;
+            case 24 -> CONFIG.airJump = !CONFIG.airJump;
+            case 25 -> CONFIG.freecam = !CONFIG.freecam;
             default -> { return; }
         }
         CONFIG.save();
         sendToggleMessage(index);
         if (index == 4 && !CONFIG.flight) stopFlightMotion();
-        if (index == 9) refreshWorldRenderer();
-        if (index == 23 && !CONFIG.freecam) {
+        if (index == 11) refreshWorldRenderer();
+        if (index == 25 && !CONFIG.freecam) {
             freecamPosition = null;
             freecamAnchor = null;
         }
@@ -995,23 +1008,25 @@ public final class ZenithClient implements ClientModInitializer {
             case 4 -> { name = "Flight"; enabled = CONFIG.flight; }
             case 5 -> { name = "Auto Sprint"; enabled = CONFIG.autoSprint; }
             case 6 -> { name = "Fullbright"; enabled = CONFIG.fullbright; }
-            case 7 -> { name = "FPS HUD"; enabled = CONFIG.showFps; }
-            case 8 -> { name = "Coordinates HUD"; enabled = CONFIG.showCoordinates; }
-            case 9 -> { name = "X-Ray"; enabled = CONFIG.xray; }
-            case 10 -> { name = "No Slow"; enabled = CONFIG.noSlow; }
-            case 11 -> { name = "No Stun"; enabled = CONFIG.noStun; }
-            case 12 -> { name = "No Fall"; enabled = CONFIG.noFall; }
-            case 13 -> { name = "Criticals"; enabled = CONFIG.criticals; }
-            case 14 -> { name = "Auto Totem"; enabled = CONFIG.autoTotem; }
-            case 15 -> { name = "Attribute Swap"; enabled = CONFIG.attributeSwap; }
-            case 16 -> { name = "Kill Aura"; enabled = CONFIG.killAura; }
-            case 17 -> { name = "Reach"; enabled = CONFIG.reach; }
-            case 18 -> { name = "Infinite Reach"; enabled = CONFIG.infiniteReach; }
-            case 19 -> { name = "Speed"; enabled = CONFIG.speed; }
-            case 20 -> { name = "Mace Kill"; enabled = CONFIG.maceKill; }
-            case 21 -> { name = "Super Punch"; enabled = CONFIG.superPunch; }
-            case 22 -> { name = "Air Jump"; enabled = CONFIG.airJump; }
-            case 23 -> { name = "Freecam"; enabled = CONFIG.freecam; }
+            case 7 -> { name = "No Blindness"; enabled = CONFIG.noBlindness; }
+            case 8 -> { name = "No Fire Overlay"; enabled = CONFIG.noFireOverlay; }
+            case 9 -> { name = "FPS HUD"; enabled = CONFIG.showFps; }
+            case 10 -> { name = "Coordinates HUD"; enabled = CONFIG.showCoordinates; }
+            case 11 -> { name = "X-Ray"; enabled = CONFIG.xray; }
+            case 12 -> { name = "No Slow"; enabled = CONFIG.noSlow; }
+            case 13 -> { name = "No Stun"; enabled = CONFIG.noStun; }
+            case 14 -> { name = "No Fall"; enabled = CONFIG.noFall; }
+            case 15 -> { name = "Criticals"; enabled = CONFIG.criticals; }
+            case 16 -> { name = "Auto Totem"; enabled = CONFIG.autoTotem; }
+            case 17 -> { name = "Attribute Swap"; enabled = CONFIG.attributeSwap; }
+            case 18 -> { name = "Kill Aura"; enabled = CONFIG.killAura; }
+            case 19 -> { name = "Reach"; enabled = CONFIG.reach; }
+            case 20 -> { name = "Infinite Reach"; enabled = CONFIG.infiniteReach; }
+            case 21 -> { name = "Speed"; enabled = CONFIG.speed; }
+            case 22 -> { name = "Mace Kill"; enabled = CONFIG.maceKill; }
+            case 23 -> { name = "Super Punch"; enabled = CONFIG.superPunch; }
+            case 24 -> { name = "Air Jump"; enabled = CONFIG.airJump; }
+            case 25 -> { name = "Freecam"; enabled = CONFIG.freecam; }
             default -> { return; }
         }
         net.minecraft.network.chat.MutableComponent message = net.minecraft.network.chat.Component.literal("[")

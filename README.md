@@ -17,6 +17,8 @@ ZenithClient is a client-side Fabric utility mod for Minecraft 26.2 built with J
 - Block ESP: configurable block group, color, fill opacity, radius, and cached low-lag scanning.
 - Trajectories: projectile path preview with quality, color, thickness, and start-distance controls.
 - X-Ray: experimental safe chunk-rebuild toggle that shows selected ores/liquids while hiding non-target block geometry.
+- No Blindness: removes blindness and darkness effects client-side.
+- No Fire Overlay: hides the first-person burning overlay.
 - Freecam: independent spectator-style camera movement with configurable speed and reduced fluid-fog glitches.
 
 ### Combat

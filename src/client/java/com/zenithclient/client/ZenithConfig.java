@@ -33,6 +33,8 @@ public final class ZenithConfig {
     public boolean showFps = false;
     public boolean showCoordinates = false;
     public boolean fullbright = false;
+    public boolean noBlindness = false;
+    public boolean noFireOverlay = false;
     public boolean autoSprint = false;
     public boolean flight = false;
     public boolean xray = false;
@@ -96,6 +98,8 @@ public final class ZenithConfig {
     public int flightKey = -1;
     public int autoSprintKey = -1;
     public int fullbrightKey = -1;
+    public int noBlindnessKey = -1;
+    public int noFireOverlayKey = -1;
     public int showFpsKey = -1;
     public int showCoordinatesKey = -1;
     public int xrayKey = -1;
@@ -156,7 +160,7 @@ public final class ZenithConfig {
         killAuraRange = clamp(killAuraRange, 1.0, 20.0, 4.5);
         reachDistance = clamp(reachDistance, 3.0, 20.0, 4.5);
         speedAmount = clamp(speedAmount, 0.1, 10.0, 1.5);
-        maceKillHeight = clamp(maceKillHeight, 4.0, 200.0, 80.0);
+        maceKillHeight = clamp(maceKillHeight, 4.0, 10000.0, 80.0);
         superPunchPackets = (int) clamp(superPunchPackets, 2, 8, 4);
         freecamSpeed = clamp(freecamSpeed, 0.1, 10.0, 1.0);
     }
