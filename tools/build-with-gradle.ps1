@@ -69,6 +69,7 @@ function Convert-ToLegacySource {
     $oldCameraRotationApi = $script:LegacyMinecraftVersion -ne '1.21.11'
     $oldCameraPositionApi = $veryOldApi -or $script:LegacyMinecraftVersion -in @('1.21.1', '1.21.4', '1.21.5')
     $oldMobEffectApi = $script:LegacyMinecraftVersion -in @('1.20.1', '1.20.4')
+    $renderTypeBlitApi = $script:LegacyMinecraftVersion -in @('1.21.4', '1.21.5')
 
     if ($RelativePath -like '*\mixin\ModelBlockRendererMixin.java') {
         return @'
@@ -158,6 +159,9 @@ public abstract class WebBlockNoSlowMixin {
     }
     $Text = $Text.Replace('import net.minecraft.world.inventory.ContainerInput;', 'import net.minecraft.world.inventory.ClickType;')
     $Text = $Text.Replace('GuiGraphicsExtractor', 'GuiGraphics')
+    if ($renderTypeBlitApi) {
+        $Text = $Text.Replace('import net.minecraft.client.gui.screens.Screen;', "import net.minecraft.client.gui.screens.Screen;`r`nimport net.minecraft.client.renderer.RenderType;")
+    }
     if (-not $identifierApi) {
         $Text = $Text.Replace('Identifier', 'ResourceLocation')
     }
@@ -205,8 +209,8 @@ public abstract class WebBlockNoSlowMixin {
                 ZenithClient::renderHud
         );', 'HudRenderCallback.EVENT.register(ZenithClient::renderHud);')
     $Text = $Text.Replace('g.blit(RenderPipelines.GUI_TEXTURED, LOGO, left + 8, top + 6, 0, 0, 48, 48, 256, 256, 256, 256, 0xFFFFFFFF);', 'g.blit(LOGO, left + 8, top + 6, 0, 0, 48, 48, 256, 256);')
-    if ($script:LegacyMinecraftVersion -like '1.20.*' -or $script:LegacyMinecraftVersion -in @('1.21.1', '1.21.4', '1.21.5')) {
-        $Text = $Text.Replace('g.blit(LOGO, left + 8, top + 6, 0, 0, 48, 48, 256, 256);', 'g.fill(left + 8, top + 6, left + 56, top + 54, accent);')
+    if ($renderTypeBlitApi) {
+        $Text = $Text.Replace('g.blit(LOGO, left + 8, top + 6, 0, 0, 48, 48, 256, 256);', 'g.blit(RenderType::guiTextured, LOGO, left + 8, top + 6, 0.0F, 0.0F, 48, 48, 256, 256);')
     }
     if ($oldInputApi) {
         if ($veryOldApi) {
