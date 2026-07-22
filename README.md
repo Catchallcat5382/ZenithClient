@@ -16,7 +16,7 @@ ZenithClient is a client-side Fabric utility mod for Minecraft 26.2 built with J
 - Projectile ESP: exact projectile glow outline, labels, color, range, and tracers.
 - Block ESP: configurable block group, color, fill opacity, radius, and cached low-lag scanning.
 - Trajectories: projectile path preview with quality, color, thickness, and start-distance controls.
-- X-Ray: safe chunk-rebuild toggle that shows selected ores/liquids, hides non-target block geometry across render distance, and adds faint outlines for hidden blocks.
+- X-Ray: experimental safe chunk-rebuild toggle that shows selected ores/liquids while hiding non-target block geometry.
 - Freecam: independent spectator-style camera movement with configurable speed and reduced fluid-fog glitches.
 
 ### Combat
@@ -47,6 +47,7 @@ ZenithClient is a client-side Fabric utility mod for Minecraft 26.2 built with J
 Press Right Shift during gameplay to open ZenithClient. Module keybinds only fire while no screen is open, so typing in chat or another text screen will not toggle modules.
 
 Right-click a module card to open its settings. Numeric settings support both dragging the slider and typing an exact value.
+Right-click Entity ESP, Block ESP, X-Ray, or Kill Aura target/filter rows to open a searchable in-game registry picker.
 
 Chat commands start with `.`. `.autovaultclip down`, `.autovaultclip up`, and `.autovaultclip highest` move to the next matching block level in that direction.
 Press Tab while typing `.aut...` in chat to autocomplete `.autovaultclip`.

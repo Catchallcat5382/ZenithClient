@@ -60,7 +60,7 @@ public final class ZenithScreen extends Screen {
         // Actual Mod Menu icon.
         g.blit(RenderPipelines.GUI_TEXTURED, LOGO, left + 8, top + 6, 0, 0, 48, 48, 256, 256, 256, 256, 0xFFFFFFFF);
         g.text(font, "ZenithClient", left + 61, top + 17, 0xFFF4F4F4, true);
-        g.text(font, "v22", left + 61, top + 29, 0xFF9A9A9A, false);
+        g.text(font, ZenithClient.versionLabel(), left + 61, top + 29, 0xFF9A9A9A, false);
 
         int ty = top + 58;
         for (Category c : Category.values()) {

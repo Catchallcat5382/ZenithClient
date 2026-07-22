@@ -2,6 +2,7 @@ package com.zenithclient.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
@@ -68,6 +69,16 @@ public final class ZenithClient implements ClientModInitializer {
 
     public static ZenithConfig getConfig() { return CONFIG; }
 
+    public static String versionLabel() {
+        try {
+            return "v" + FabricLoader.getInstance().getModContainer(MOD_ID)
+                    .map(container -> container.getMetadata().getVersion().getFriendlyString())
+                    .orElse("dev");
+        } catch (RuntimeException ignored) {
+            return "vdev";
+        }
+    }
+
     @Override
     public void onInitializeClient() {
         CONFIG.xray = false;
@@ -127,12 +138,7 @@ public final class ZenithClient implements ClientModInitializer {
             lastXrayState = CONFIG.xray;
             refreshWorldRenderer();
         }
-        if (CONFIG.xray) {
-            BlockPos origin = client.player.blockPosition();
-            if (lastXrayOutlineOrigin == null || blockDistanceSquared(lastXrayOutlineOrigin, origin) >= 256 || ticks % 120 == 0) {
-                refreshXrayOutlines(client);
-            }
-        }
+        if (CONFIG.xray && !XRAY_OUTLINE_BLOCKS.isEmpty()) XRAY_OUTLINE_BLOCKS.clear();
 
         if (CONFIG.blockHighlights) {
             BlockPos origin = client.player.blockPosition();
@@ -327,7 +333,7 @@ public final class ZenithClient implements ClientModInitializer {
                 replayingAttack = false;
             }
         }
-        if (restoreSwapSlot >= 0) restoreSwapAfterTick = ticks + 1;
+        if (restoreSwapSlot >= 0) restoreAttributeSwap(client);
     }
 
     private static void prepareAttributeSwap(Minecraft client) {
@@ -363,12 +369,16 @@ public final class ZenithClient implements ClientModInitializer {
         try {
             return (int) inventory.getClass().getMethod("getSelectedSlot").invoke(inventory);
         } catch (ReflectiveOperationException ignored) {
-            try {
-                java.lang.reflect.Field field = inventory.getClass().getField("selected");
-                return field.getInt(inventory);
-            } catch (ReflectiveOperationException ignoredAgain) {
-                return 0;
+            for (String name : new String[]{"selected", "selectedSlot"}) {
+                try {
+                    java.lang.reflect.Field field = inventory.getClass().getDeclaredField(name);
+                    field.setAccessible(true);
+                    return field.getInt(inventory);
+                } catch (ReflectiveOperationException ignoredAgain) {
+                    // Try the next mapped field name.
+                }
             }
+            return 0;
         }
     }
 
@@ -378,11 +388,15 @@ public final class ZenithClient implements ClientModInitializer {
             inventory.getClass().getMethod("setSelectedSlot", int.class).invoke(inventory, slot);
             return;
         } catch (ReflectiveOperationException ignored) {
-            try {
-                java.lang.reflect.Field field = inventory.getClass().getField("selected");
-                field.setInt(inventory, slot);
-            } catch (ReflectiveOperationException ignoredAgain) {
-                // Server packet still tells the server which hotbar slot to use.
+            for (String name : new String[]{"selected", "selectedSlot"}) {
+                try {
+                    java.lang.reflect.Field field = inventory.getClass().getDeclaredField(name);
+                    field.setAccessible(true);
+                    field.setInt(inventory, slot);
+                    return;
+                } catch (ReflectiveOperationException ignoredAgain) {
+                    // Try the next mapped field name.
+                }
             }
         }
     }
@@ -799,7 +813,23 @@ public final class ZenithClient implements ClientModInitializer {
     private static void warn(String text) {
         Minecraft client = Minecraft.getInstance();
         if (client.player == null) return;
-        client.player.sendSystemMessage(net.minecraft.network.chat.Component.literal("[ZenithClient] " + text));
+        sendClientMessage(net.minecraft.network.chat.Component.literal("[ZenithClient] " + text));
+    }
+
+    private static void sendClientMessage(net.minecraft.network.chat.Component message) {
+        Minecraft client = Minecraft.getInstance();
+        if (client.player == null) return;
+        try {
+            client.player.getClass().getMethod("sendSystemMessage", net.minecraft.network.chat.Component.class).invoke(client.player, message);
+            return;
+        } catch (ReflectiveOperationException ignored) {
+            // Older mappings use displayClientMessage.
+        }
+        try {
+            client.player.getClass().getMethod("displayClientMessage", net.minecraft.network.chat.Component.class, boolean.class).invoke(client.player, message, false);
+        } catch (ReflectiveOperationException ignored) {
+            // Do not crash gameplay because a chat helper method moved.
+        }
     }
 
     public static void setTrajectoryTarget(Entity entity) {
@@ -991,7 +1021,7 @@ public final class ZenithClient implements ClientModInitializer {
                 .append(net.minecraft.network.chat.Component.literal(name + " ").withStyle(net.minecraft.ChatFormatting.GRAY))
                 .append(net.minecraft.network.chat.Component.literal(enabled ? "ON" : "OFF")
                         .withStyle(enabled ? net.minecraft.ChatFormatting.GREEN : net.minecraft.ChatFormatting.RED));
-        client.player.sendSystemMessage(message);
+        sendClientMessage(message);
     }
 
 }

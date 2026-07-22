@@ -34,7 +34,6 @@ public final class ScreenSpaceVisualRenderer {
         Projection projection = new Projection(client, tickDelta);
         renderEntityOverlays(graphics, client, config, projection, tickDelta);
         if (config.blockHighlights) renderBlocks(graphics, config, projection, highlightedBlocks);
-        if (config.xray) renderXrayOutlines(graphics, projection, xrayOutlineBlocks);
         if (config.trajectoryPreview) renderTrajectory(graphics, client, config, projection);
     }
 
@@ -54,7 +53,7 @@ public final class ScreenSpaceVisualRenderer {
             if (!player && !item && !projectile && (!config.entityHighlights || !ZenithClient.matchesEntityMode(entity))) continue;
 
             AABB espBox = lerpedBox(entity, tickDelta);
-            ScreenPoint point = projection.project(new Vec3((espBox.minX + espBox.maxX) * 0.5, espBox.maxY, (espBox.minZ + espBox.maxZ) * 0.5));
+            ScreenPoint point = projection.project(new Vec3((espBox.minX + espBox.maxX) * 0.5, espBox.maxY + (player ? 0.35 : 0.0), (espBox.minZ + espBox.maxZ) * 0.5));
             if (point == null) continue;
 
             int outlineColor = player ? config.playerOutlineColor : item ? config.itemEspColor : projectile ? config.projectileEspColor : config.entityOutlineColor;
@@ -310,7 +309,7 @@ public final class ScreenSpaceVisualRenderer {
         private final double focalLength;
 
         private Projection(Minecraft client, float tickDelta) {
-            net.minecraft.client.Camera camera = client.gameRenderer.mainCamera();
+            net.minecraft.client.Camera camera = activeCamera(client);
             this.origin = camera.position();
             double yaw = Math.toRadians(camera.yRot());
             double pitch = Math.toRadians(camera.xRot());
@@ -324,6 +323,28 @@ public final class ScreenSpaceVisualRenderer {
             this.height = client.getWindow().getGuiScaledHeight();
             double fov = client.options.fov().get();
             this.focalLength = (height * 0.5) / Math.tan(Math.toRadians(fov * 0.5));
+        }
+
+        private static net.minecraft.client.Camera activeCamera(Minecraft client) {
+            for (String method : new String[]{"mainCamera", "getMainCamera"}) {
+                try {
+                    Object value = client.gameRenderer.getClass().getMethod(method).invoke(client.gameRenderer);
+                    if (value instanceof net.minecraft.client.Camera camera) return camera;
+                } catch (ReflectiveOperationException ignored) {
+                    // Try the next mapped method name.
+                }
+            }
+            for (java.lang.reflect.Field field : client.gameRenderer.getClass().getDeclaredFields()) {
+                if (!net.minecraft.client.Camera.class.isAssignableFrom(field.getType())) continue;
+                try {
+                    field.setAccessible(true);
+                    Object value = field.get(client.gameRenderer);
+                    if (value instanceof net.minecraft.client.Camera camera) return camera;
+                } catch (ReflectiveOperationException ignored) {
+                    // Fall through to the defensive empty camera.
+                }
+            }
+            return new net.minecraft.client.Camera();
         }
 
         private ScreenPoint project(Vec3 world) {

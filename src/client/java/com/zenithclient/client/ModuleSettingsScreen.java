@@ -152,6 +152,7 @@ public final class ModuleSettingsScreen extends Screen {
                 return true;
             }
             if (hit.action == Action.OPTION) {
+                if (event.buttonInfo().button() == 1 && openRegistryPicker(hit.index)) return true;
                 Numeric numeric = numeric(hit.index);
                 if (numeric != null) {
                     int sliderLeft = hit.x + 11;
@@ -352,7 +353,7 @@ public final class ModuleSettingsScreen extends Screen {
             case PROJECTILE -> { rows.add(row("Projectile ESP", onOff(config.projectileEsp))); rows.add(row("Color", colorName(config.projectileEspColor))); rows.add(row("Range", config.entityRange + " blocks")); rows.add(row("Tracers", onOff(config.projectileTracers))); }
             case BLOCKS -> { rows.add(row("Block type", config.blockHighlightMode.displayName())); rows.add(row("Search radius", config.blockRadius + " blocks")); rows.add(row("Outline color", colorName(config.blockOutlineColor))); rows.add(row("Fill opacity", config.blockFillOpacity + "%")); rows.add(row("Filter", empty(config.blockSearch) ? "Selected block type" : config.blockSearch)); }
             case TRAJECTORY -> { rows.add(row("Simulation quality", Integer.toString(config.lineDensity))); rows.add(row("Line color", colorName(config.trajectoryColor))); rows.add(row("Thickness", Integer.toString(config.trajectoryThickness))); rows.add(row("Start distance", trim(config.trajectoryStartDistance))); }
-            case XRAY -> { rows.add(row("Visible blocks", config.xrayMode.displayName())); rows.add(row("Render mode", "Safe hide + outlines")); rows.add(row("Filter", empty(config.xraySearch) ? "Selected X-Ray mode" : config.xraySearch)); }
+            case XRAY -> { rows.add(row("Visible blocks", config.xrayMode.displayName())); rows.add(row("Status", "Experimental")); rows.add(row("Filter", empty(config.xraySearch) ? "Selected X-Ray mode" : config.xraySearch)); }
             case FLIGHT -> { rows.add(row("Horizontal speed", trim(config.flightSpeed))); rows.add(row("Vertical speed", trim(config.flightVerticalSpeed))); rows.add(row("Sprint multiplier", trim(config.flightSprintMultiplier) + "x")); }
             case SPEED -> { rows.add(row("Speed", onOff(config.speed))); rows.add(row("Amount", trim(config.speedAmount))); }
             case ATTRIBUTE_SWAP -> { rows.add(row("Attribute Swap", onOff(config.attributeSwap))); rows.add(row("Hotbar slot", Integer.toString(config.attributeSwapSlot))); }
@@ -394,6 +395,20 @@ public final class ModuleSettingsScreen extends Screen {
             case FREECAM -> { if (index == 0) config.freecam = !config.freecam; }
             default -> { }
         }
+    }
+
+    private boolean openRegistryPicker(int index) {
+        RegistryPickerScreen.Mode mode = switch (type) {
+            case ENTITY -> index == 0 || index == 11 ? RegistryPickerScreen.Mode.ENTITY_ESP : null;
+            case BLOCKS -> index == 0 || index == 4 ? RegistryPickerScreen.Mode.BLOCK_ESP : null;
+            case XRAY -> index == 0 || index == 2 ? RegistryPickerScreen.Mode.XRAY : null;
+            case KILL_AURA -> index == 3 ? RegistryPickerScreen.Mode.KILL_AURA : null;
+            default -> null;
+        };
+        if (mode == null || minecraft == null) return false;
+        commitNumber();
+        minecraft.setScreenAndShow(RegistryPickerScreen.of(this, config, mode));
+        return true;
     }
 
     private int getKeybind() { return switch (type) { case PLAYER -> config.playerEspKey; case ENTITY -> config.entityHighlightsKey; case ITEM, PROJECTILE -> -1; case BLOCKS -> config.blockHighlightsKey; case TRAJECTORY -> config.trajectoryPreviewKey; case XRAY -> config.xrayKey; case FLIGHT -> config.flightKey; case SPEED -> config.speedKey; case AUTO_SPRINT -> config.autoSprintKey; case NO_SLOW -> config.noSlowKey; case NO_STUN -> config.noStunKey; case NO_FALL -> config.noFallKey; case CRITICALS -> config.criticalsKey; case AUTO_TOTEM -> config.autoTotemKey; case ATTRIBUTE_SWAP -> config.attributeSwapKey; case KILL_AURA -> config.killAuraKey; case REACH -> config.reachKey; case INFINITE_REACH -> config.infiniteReachKey; case MACE_KILL -> config.maceKillKey; case SUPER_PUNCH -> config.superPunchKey; case AIR_JUMP -> config.airJumpKey; case FREECAM -> config.freecamKey; case FULLBRIGHT -> config.fullbrightKey; case FPS -> config.showFpsKey; case COORDINATES -> config.showCoordinatesKey; }; }
