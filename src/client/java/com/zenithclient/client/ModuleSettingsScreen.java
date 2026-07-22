@@ -345,7 +345,7 @@ public final class ModuleSettingsScreen extends Screen {
         List<String[]> rows = new ArrayList<>();
         switch (type) {
             case PLAYER -> { rows.add(row("ESP", onOff(config.playerEsp))); rows.add(row("Shape", config.playerEspShape.displayName())); rows.add(row("Outline color", colorName(config.playerOutlineColor))); rows.add(row("Fill color", colorName(config.playerFillColor))); rows.add(row("Fill opacity", config.playerFillOpacity + "%")); rows.add(row("Outline thickness", Integer.toString(config.playerOutlineThickness))); rows.add(row("Range", config.entityRange + " blocks")); rows.add(row("Tracers", onOff(config.playerTracers))); rows.add(row("Name tags", onOff(config.playerNameTags))); }
-            case ENTITY -> { rows.add(row("Target group", config.entityHighlightMode.displayName())); rows.add(row("Shape", config.entityEspShape.displayName())); rows.add(row("Outline", onOff(config.entityOutline))); rows.add(row("Fill / chams", onOff(config.entityFill))); rows.add(row("Outline color", colorName(config.entityOutlineColor))); rows.add(row("Fill color", colorName(config.entityFillColor))); rows.add(row("Fill opacity", config.entityFillOpacity + "%")); rows.add(row("Outline thickness", Integer.toString(config.entityOutlineThickness))); rows.add(row("Range", config.entityRange + " blocks")); rows.add(row("Tracers", onOff(config.entityTracers))); rows.add(row("Name tags", onOff(config.entityNameTags))); rows.add(row("Choose entity", empty(config.entitySearch) ? "Click to search all mobs/entities" : config.entitySearch)); }
+            case ENTITY -> { rows.add(row("Target entity", empty(config.entitySearch) ? "Click to search all mobs/entities" : config.entitySearch)); rows.add(row("Shape", config.entityEspShape.displayName())); rows.add(row("Outline", onOff(config.entityOutline))); rows.add(row("Fill / chams", onOff(config.entityFill))); rows.add(row("Outline color", colorName(config.entityOutlineColor))); rows.add(row("Fill color", colorName(config.entityFillColor))); rows.add(row("Fill opacity", config.entityFillOpacity + "%")); rows.add(row("Outline thickness", Integer.toString(config.entityOutlineThickness))); rows.add(row("Range", config.entityRange + " blocks")); rows.add(row("Tracers", onOff(config.entityTracers))); rows.add(row("Name tags", onOff(config.entityNameTags))); }
             case ITEM -> { rows.add(row("Item ESP", onOff(config.itemEsp))); rows.add(row("Color", colorName(config.itemEspColor))); rows.add(row("Range", config.entityRange + " blocks")); rows.add(row("Tracers", onOff(config.itemTracers))); }
             case PROJECTILE -> { rows.add(row("Projectile ESP", onOff(config.projectileEsp))); rows.add(row("Color", colorName(config.projectileEspColor))); rows.add(row("Range", config.entityRange + " blocks")); rows.add(row("Tracers", onOff(config.projectileTracers))); }
             case BLOCKS -> { rows.add(row("Block type", config.blockHighlightMode.displayName())); rows.add(row("Search radius", config.blockRadius + " blocks")); rows.add(row("Outline color", colorName(config.blockOutlineColor))); rows.add(row("Fill opacity", config.blockFillOpacity + "%")); rows.add(row("Filter", empty(config.blockSearch) ? "Selected block type" : config.blockSearch)); }
@@ -369,7 +369,7 @@ public final class ModuleSettingsScreen extends Screen {
 
     private int baseOptionCount() {
         return switch (type) {
-            case PLAYER -> 9; case ENTITY -> 12; case ITEM, PROJECTILE -> 4; case BLOCKS -> 5; case TRAJECTORY -> 4;
+            case PLAYER -> 9; case ENTITY -> 11; case ITEM, PROJECTILE -> 4; case BLOCKS -> 5; case TRAJECTORY -> 4;
             case XRAY -> 3; case FLIGHT -> 3; case ATTRIBUTE_SWAP, SPEED, REACH, MACE_KILL, FREECAM -> 2; case KILL_AURA -> 4; case NO_BLINDNESS, NO_FIRE_OVERLAY, INFINITE_REACH -> 1; default -> 0;
         };
     }
@@ -377,7 +377,7 @@ public final class ModuleSettingsScreen extends Screen {
     private void changeOption(int index, int direction) {
         switch (type) {
             case PLAYER -> { if (index == 0) config.playerEsp = !config.playerEsp; else if (index == 1) config.playerEspShape = direction > 0 ? config.playerEspShape.next() : previous(config.playerEspShape); else if (index == 2) config.playerOutlineColor = cycleColor(config.playerOutlineColor, direction); else if (index == 3) config.playerFillColor = cycleColor(config.playerFillColor, direction); else if (index == 7) config.playerTracers = !config.playerTracers; else if (index == 8) config.playerNameTags = !config.playerNameTags; }
-            case ENTITY -> { if (index == 0) config.entityHighlightMode = direction > 0 ? config.entityHighlightMode.next() : previous(config.entityHighlightMode); else if (index == 1) config.entityEspShape = direction > 0 ? config.entityEspShape.next() : previous(config.entityEspShape); else if (index == 2) config.entityOutline = !config.entityOutline; else if (index == 3) config.entityFill = !config.entityFill; else if (index == 4) config.entityOutlineColor = cycleColor(config.entityOutlineColor, direction); else if (index == 5) config.entityFillColor = cycleColor(config.entityFillColor, direction); else if (index == 9) config.entityTracers = !config.entityTracers; else if (index == 10) config.entityNameTags = !config.entityNameTags; }
+            case ENTITY -> { if (index == 1) config.entityEspShape = direction > 0 ? config.entityEspShape.next() : previous(config.entityEspShape); else if (index == 2) config.entityOutline = !config.entityOutline; else if (index == 3) config.entityFill = !config.entityFill; else if (index == 4) config.entityOutlineColor = cycleColor(config.entityOutlineColor, direction); else if (index == 5) config.entityFillColor = cycleColor(config.entityFillColor, direction); else if (index == 9) config.entityTracers = !config.entityTracers; else if (index == 10) config.entityNameTags = !config.entityNameTags; }
             case ITEM -> { if (index == 0) config.itemEsp = !config.itemEsp; else if (index == 1) config.itemEspColor = cycleColor(config.itemEspColor, direction); else if (index == 3) config.itemTracers = !config.itemTracers; }
             case PROJECTILE -> { if (index == 0) config.projectileEsp = !config.projectileEsp; else if (index == 1) config.projectileEspColor = cycleColor(config.projectileEspColor, direction); else if (index == 3) config.projectileTracers = !config.projectileTracers; }
             case BLOCKS -> { if (index == 0) config.blockHighlightMode = direction > 0 ? config.blockHighlightMode.next() : previous(config.blockHighlightMode); else if (index == 2) config.blockOutlineColor = cycleColor(config.blockOutlineColor, direction); }
@@ -398,7 +398,7 @@ public final class ModuleSettingsScreen extends Screen {
 
     private boolean openRegistryPicker(int index) {
         RegistryPickerScreen.Mode mode = switch (type) {
-            case ENTITY -> index == 0 || index == 11 ? RegistryPickerScreen.Mode.ENTITY_ESP : null;
+            case ENTITY -> index == 0 ? RegistryPickerScreen.Mode.ENTITY_ESP : null;
             case BLOCKS -> index == 0 || index == 4 ? RegistryPickerScreen.Mode.BLOCK_ESP : null;
             case XRAY -> index == 0 || index == 2 ? RegistryPickerScreen.Mode.XRAY : null;
             case KILL_AURA -> index == 3 ? RegistryPickerScreen.Mode.KILL_AURA : null;
@@ -411,7 +411,7 @@ public final class ModuleSettingsScreen extends Screen {
     }
 
     private boolean isEntityPickerRow(int index) {
-        return (type == Type.ENTITY && index == 11) || (type == Type.KILL_AURA && index == 3);
+        return (type == Type.ENTITY && index == 0) || (type == Type.KILL_AURA && index == 3);
     }
 
     private int getKeybind() { return switch (type) { case PLAYER -> config.playerEspKey; case ENTITY -> config.entityHighlightsKey; case ITEM, PROJECTILE -> -1; case BLOCKS -> config.blockHighlightsKey; case TRAJECTORY -> config.trajectoryPreviewKey; case XRAY -> config.xrayKey; case NO_BLINDNESS -> config.noBlindnessKey; case NO_FIRE_OVERLAY -> config.noFireOverlayKey; case FLIGHT -> config.flightKey; case SPEED -> config.speedKey; case AUTO_SPRINT -> config.autoSprintKey; case NO_SLOW -> config.noSlowKey; case NO_STUN -> config.noStunKey; case NO_FALL -> config.noFallKey; case CRITICALS -> config.criticalsKey; case AUTO_TOTEM -> config.autoTotemKey; case ATTRIBUTE_SWAP -> config.attributeSwapKey; case KILL_AURA -> config.killAuraKey; case REACH -> config.reachKey; case INFINITE_REACH -> config.infiniteReachKey; case MACE_KILL -> config.maceKillKey; case AIR_JUMP -> config.airJumpKey; case FREECAM -> config.freecamKey; case FULLBRIGHT -> config.fullbrightKey; case FPS -> config.showFpsKey; case COORDINATES -> config.showCoordinatesKey; }; }

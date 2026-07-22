@@ -39,7 +39,8 @@ public final class RegistryPickerScreen extends Screen {
         return new RegistryPickerScreen(parent, config, mode);
     }
 
-    public void render(GuiGraphicsExtractor g, int mouseX, int mouseY, float tickDelta) {
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float tickDelta) {
         int w = Math.min(560, width - 30);
         int h = Math.min(420, height - 30);
         int left = (width - w) / 2;
@@ -66,7 +67,12 @@ public final class RegistryPickerScreen extends Screen {
             y += 24;
             if (shown > 120) break;
         }
+        if (shown == 0) {
+            g.text(font, entries.isEmpty() ? "Registry is not loaded yet." : "No matches. Backspace or type another search.",
+                    left + 18, top + 64, 0xFFFFC107, false);
+        }
         maxScroll = Math.max(0, y + scroll - (top + h - 30));
+        super.extractRenderState(g, mouseX, mouseY, tickDelta);
     }
 
     private void drawRow(GuiGraphicsExtractor g, int mouseX, int mouseY, String id, int x, int y, int w, String label) {

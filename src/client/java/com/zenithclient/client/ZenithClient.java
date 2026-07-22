@@ -141,7 +141,11 @@ public final class ZenithClient implements ClientModInitializer {
             lastXrayState = CONFIG.xray;
             refreshWorldRenderer();
         }
-        if (CONFIG.xray && !XRAY_OUTLINE_BLOCKS.isEmpty()) XRAY_OUTLINE_BLOCKS.clear();
+        if (CONFIG.xray) {
+            BlockPos origin = client.player.blockPosition();
+            boolean moved = lastXrayOutlineOrigin == null || blockDistanceSquared(lastXrayOutlineOrigin, origin) >= 64;
+            if (moved || ticks % 40 == 0 || XRAY_OUTLINE_BLOCKS.isEmpty()) refreshXrayOutlines(client);
+        }
 
         if (CONFIG.blockHighlights) {
             BlockPos origin = client.player.blockPosition();
@@ -336,8 +340,8 @@ public final class ZenithClient implements ClientModInitializer {
 
     /** Called at the end of the vanilla attack method by CriticalsMixin. */
     public static void afterAttack(Entity target) {
-        Minecraft client = Minecraft.getInstance();
-        if (restoreSwapSlot >= 0) restoreAttributeSwap(client);
+        // Restore is intentionally delayed until the next client tick so the
+        // server receives selected-slot -> attack -> original-slot in order.
     }
 
     private static void prepareAttributeSwap(Minecraft client) {
@@ -348,7 +352,6 @@ public final class ZenithClient implements ClientModInitializer {
         if (wanted == current) return;
         restoreSwapSlot = current;
         restoreSwapAfterTick = ticks + 1;
-        client.player.connection.send(new ServerboundSetCarriedItemPacket(current));
         setSelectedHotbarSlot(client, wanted);
         client.player.connection.send(new ServerboundSetCarriedItemPacket(wanted));
     }
@@ -643,17 +646,17 @@ public final class ZenithClient implements ClientModInitializer {
         XRAY_OUTLINE_BLOCKS.clear();
         if (client.player == null || client.level == null || !CONFIG.xray) return;
         BlockPos origin = client.player.blockPosition();
-        int radius = Math.max(8, Math.min(64, client.options.renderDistance().get() * 8));
+        int radius = Math.max(16, Math.min(96, client.options.renderDistance().get() * 16));
         int minY = levelMinY(client);
         int maxY = levelMaxY(client);
-        int stride = radius > 48 ? 8 : 6;
-        int maxBlocks = 220;
-        for (int x = -radius; x <= radius && XRAY_OUTLINE_BLOCKS.size() < maxBlocks; x += stride) {
-            for (int z = -radius; z <= radius && XRAY_OUTLINE_BLOCKS.size() < maxBlocks; z += stride) {
-                for (int y = Math.max(minY, origin.getY() - 32); y <= Math.min(maxY, origin.getY() + 32) && XRAY_OUTLINE_BLOCKS.size() < maxBlocks; y += stride) {
+        int maxBlocks = 4000;
+        for (int x = -radius; x <= radius && XRAY_OUTLINE_BLOCKS.size() < maxBlocks; x++) {
+            for (int z = -radius; z <= radius && XRAY_OUTLINE_BLOCKS.size() < maxBlocks; z++) {
+                if (x * x + z * z > radius * radius) continue;
+                for (int y = minY; y < maxY && XRAY_OUTLINE_BLOCKS.size() < maxBlocks; y++) {
                     BlockPos pos = new BlockPos(origin.getX() + x, y, origin.getZ() + z);
                     Block block = client.level.getBlockState(pos).getBlock();
-                    if (block != Blocks.AIR && XrayHooks.isBlocked(block)) XRAY_OUTLINE_BLOCKS.add(pos.immutable());
+                    if (block != Blocks.AIR && XrayHooks.isWhitelisted(block)) XRAY_OUTLINE_BLOCKS.add(pos.immutable());
                 }
             }
         }

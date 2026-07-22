@@ -12,7 +12,7 @@ import java.util.List;
 
 /** A completely custom-drawn Click GUI. No vanilla Button widgets are used. */
 public final class ZenithScreen extends Screen {
-    private static final Identifier LOGO = Identifier.fromNamespaceAndPath(ZenithClient.MOD_ID, "icon.png");
+    private static final Identifier LOGO = Identifier.fromNamespaceAndPath(ZenithClient.MOD_ID, "textures/icon.png");
 
     private enum Category { VISUALS, COMBAT, MOVEMENT, HUD, CONFIG }
     private enum Module { PLAYER_ESP, ENTITY_OUTLINES, ITEM_ESP, PROJECTILE_ESP, BLOCK_OUTLINES, BOW_TRAJECTORY, XRAY, NO_BLINDNESS, NO_FIRE_OVERLAY, FLIGHT, SPEED, AUTO_SPRINT, NO_SLOW, NO_STUN, NO_FALL, AIR_JUMP, FREECAM, CRITICALS, AUTO_TOTEM, ATTRIBUTE_SWAP, KILL_AURA, REACH, INFINITE_REACH, MACE_KILL, FULLBRIGHT, FPS, COORDINATES }

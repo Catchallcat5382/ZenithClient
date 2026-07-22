@@ -34,6 +34,7 @@ public final class ScreenSpaceVisualRenderer {
         Projection projection = new Projection(client, tickDelta);
         renderEntityOverlays(graphics, client, config, projection, tickDelta);
         if (config.blockHighlights) renderBlocks(graphics, config, projection, highlightedBlocks);
+        if (config.xray) renderXrayOutlines(graphics, projection, xrayOutlineBlocks);
         if (config.trajectoryPreview) renderTrajectory(graphics, client, config, projection);
     }
 
@@ -53,7 +54,7 @@ public final class ScreenSpaceVisualRenderer {
             if (!player && !item && !projectile && (!config.entityHighlights || !ZenithClient.matchesEntityMode(entity))) continue;
 
             AABB espBox = lerpedBox(entity, tickDelta);
-            ScreenPoint point = projection.project(new Vec3((espBox.minX + espBox.maxX) * 0.5, espBox.maxY + (player ? 0.35 : 0.0), (espBox.minZ + espBox.maxZ) * 0.5));
+            ScreenPoint point = projection.project(new Vec3((espBox.minX + espBox.maxX) * 0.5, espBox.maxY + 0.25, (espBox.minZ + espBox.maxZ) * 0.5));
             if (point == null) continue;
 
             int outlineColor = player ? config.playerOutlineColor : item ? config.itemEspColor : projectile ? config.projectileEspColor : config.entityOutlineColor;
@@ -96,10 +97,10 @@ public final class ScreenSpaceVisualRenderer {
     }
 
     private static void renderXrayOutlines(GuiGraphicsExtractor graphics, Projection projection, List<BlockPos> blocks) {
-        int outline = withAlpha(0xB8B8B8, 80);
+        int outline = withAlpha(0xFFFF6B35, 230);
         int rendered = 0;
         for (BlockPos pos : blocks) {
-            if (rendered++ >= 900) break;
+            if (rendered++ >= 4000) break;
             ScreenPoint[] corners = projectCorners(projection, new AABB(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1.0, pos.getY() + 1.0, pos.getZ() + 1.0));
             ScreenRect rect = bounds(corners);
             if (rect == null || rect.width() < 2 || rect.height() < 2) continue;
@@ -315,10 +316,10 @@ public final class ScreenSpaceVisualRenderer {
             double pitch = Math.toRadians(camera.xRot());
             this.forward = new Vec3(-Math.sin(yaw) * Math.cos(pitch), -Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)).normalize();
             Vec3 worldUp = new Vec3(0.0, 1.0, 0.0);
-            Vec3 computedRight = forward.cross(worldUp);
+            Vec3 computedRight = worldUp.cross(forward);
             if (computedRight.lengthSqr() < 1.0E-6) computedRight = new Vec3(1.0, 0.0, 0.0);
             this.right = computedRight.normalize();
-            this.up = right.cross(forward).normalize();
+            this.up = forward.cross(right).normalize();
             this.width = client.getWindow().getGuiScaledWidth();
             this.height = client.getWindow().getGuiScaledHeight();
             double fov = client.options.fov().get();

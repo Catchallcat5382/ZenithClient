@@ -215,6 +215,7 @@ public abstract class WebBlockNoSlowMixin {
     if ($oldInputApi) {
         if ($veryOldApi) {
             $Text = $Text.Replace('ResourceLocation.fromNamespaceAndPath(ZenithClient.MOD_ID, "icon.png")', 'new ResourceLocation(ZenithClient.MOD_ID, "icon.png")')
+            $Text = $Text.Replace('ResourceLocation.fromNamespaceAndPath(ZenithClient.MOD_ID, "textures/icon.png")', 'new ResourceLocation(ZenithClient.MOD_ID, "textures/icon.png")')
         }
         $Text = $Text.Replace('public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick)', 'public boolean mouseClicked(double mouseX, double mouseY, int button)')
         $Text = $Text.Replace('event.x()', 'mouseX')
@@ -242,7 +243,9 @@ public abstract class WebBlockNoSlowMixin {
         }
     }
     $Text = $Text.Replace('public void extractRenderState(GuiGraphics g, int mouseX, int mouseY, float delta)', 'public void render(GuiGraphics g, int mouseX, int mouseY, float delta)')
+    $Text = $Text.Replace('public void extractRenderState(GuiGraphics g, int mouseX, int mouseY, float tickDelta)', 'public void render(GuiGraphics g, int mouseX, int mouseY, float tickDelta)')
     $Text = $Text.Replace('super.extractRenderState(g, mouseX, mouseY, delta);', 'super.render(g, mouseX, mouseY, delta);')
+    $Text = $Text.Replace('super.extractRenderState(g, mouseX, mouseY, tickDelta);', 'super.render(g, mouseX, mouseY, tickDelta);')
     $Text = $Text.Replace('client.player.sendSystemMessage(message);', 'client.player.displayClientMessage(message, false);')
     return $Text
 }
