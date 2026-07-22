@@ -49,7 +49,7 @@ public final class ZenithClient implements ClientModInitializer {
     private static boolean flightWasActive;
     private static final List<BlockPos> HIGHLIGHTED_BLOCKS = new ArrayList<>();
     private static final List<BlockPos> XRAY_OUTLINE_BLOCKS = new ArrayList<>();
-    private static final boolean[] KEY_STATES = new boolean[26];
+    private static final boolean[] KEY_STATES = new boolean[25];
     private static boolean jumpWasDown;
     private static boolean menuKeyWasDown;
     private static String toggleNotice = "";
@@ -65,7 +65,6 @@ public final class ZenithClient implements ClientModInitializer {
     private static int restoreSwapSlot = -1;
     private static int restoreSwapAfterTick = -1;
     private static int lastAuraAttackTick;
-    private static boolean replayingAttack;
 
     public static ZenithConfig getConfig() { return CONFIG; }
 
@@ -335,15 +334,6 @@ public final class ZenithClient implements ClientModInitializer {
     /** Called at the end of the vanilla attack method by CriticalsMixin. */
     public static void afterAttack(Entity target) {
         Minecraft client = Minecraft.getInstance();
-        if (!replayingAttack && CONFIG.superPunch && client.player != null && client.gameMode != null && target != null) {
-            int repeats = Math.max(2, Math.min(8, CONFIG.superPunchPackets));
-            replayingAttack = true;
-            try {
-                for (int i = 0; i < repeats; i++) client.gameMode.attack(client.player, target);
-            } finally {
-                replayingAttack = false;
-            }
-        }
         if (restoreSwapSlot >= 0) restoreAttributeSwap(client);
     }
 
@@ -355,6 +345,7 @@ public final class ZenithClient implements ClientModInitializer {
         if (wanted == current) return;
         restoreSwapSlot = current;
         restoreSwapAfterTick = ticks + 1;
+        client.player.connection.send(new ServerboundSetCarriedItemPacket(current));
         setSelectedHotbarSlot(client, wanted);
         client.player.connection.send(new ServerboundSetCarriedItemPacket(wanted));
     }
@@ -474,7 +465,7 @@ public final class ZenithClient implements ClientModInitializer {
                 CONFIG.flightKey, CONFIG.autoSprintKey, CONFIG.fullbrightKey,
                 CONFIG.noBlindnessKey, CONFIG.noFireOverlayKey, CONFIG.showFpsKey, CONFIG.showCoordinatesKey, CONFIG.xrayKey,
                 CONFIG.noSlowKey, CONFIG.noStunKey, CONFIG.noFallKey, CONFIG.criticalsKey, CONFIG.autoTotemKey,
-                CONFIG.attributeSwapKey, CONFIG.killAuraKey, CONFIG.reachKey, CONFIG.infiniteReachKey, CONFIG.speedKey, CONFIG.maceKillKey, CONFIG.superPunchKey,
+                CONFIG.attributeSwapKey, CONFIG.killAuraKey, CONFIG.reachKey, CONFIG.infiniteReachKey, CONFIG.speedKey, CONFIG.maceKillKey,
                 CONFIG.airJumpKey, CONFIG.freecamKey
         };
 
@@ -510,16 +501,15 @@ public final class ZenithClient implements ClientModInitializer {
             case 20 -> CONFIG.infiniteReach = !CONFIG.infiniteReach;
             case 21 -> CONFIG.speed = !CONFIG.speed;
             case 22 -> CONFIG.maceKill = !CONFIG.maceKill;
-            case 23 -> CONFIG.superPunch = !CONFIG.superPunch;
-            case 24 -> CONFIG.airJump = !CONFIG.airJump;
-            case 25 -> CONFIG.freecam = !CONFIG.freecam;
+            case 23 -> CONFIG.airJump = !CONFIG.airJump;
+            case 24 -> CONFIG.freecam = !CONFIG.freecam;
             default -> { return; }
         }
         CONFIG.save();
         sendToggleMessage(index);
         if (index == 4 && !CONFIG.flight) stopFlightMotion();
         if (index == 11) refreshWorldRenderer();
-        if (index == 25 && !CONFIG.freecam) {
+        if (index == 24 && !CONFIG.freecam) {
             freecamPosition = null;
             freecamAnchor = null;
         }
@@ -1024,9 +1014,8 @@ public final class ZenithClient implements ClientModInitializer {
             case 20 -> { name = "Infinite Reach"; enabled = CONFIG.infiniteReach; }
             case 21 -> { name = "Speed"; enabled = CONFIG.speed; }
             case 22 -> { name = "Mace Kill"; enabled = CONFIG.maceKill; }
-            case 23 -> { name = "Super Punch"; enabled = CONFIG.superPunch; }
-            case 24 -> { name = "Air Jump"; enabled = CONFIG.airJump; }
-            case 25 -> { name = "Freecam"; enabled = CONFIG.freecam; }
+            case 23 -> { name = "Air Jump"; enabled = CONFIG.airJump; }
+            case 24 -> { name = "Freecam"; enabled = CONFIG.freecam; }
             default -> { return; }
         }
         net.minecraft.network.chat.MutableComponent message = net.minecraft.network.chat.Component.literal("[")

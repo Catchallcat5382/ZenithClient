@@ -241,6 +241,18 @@ function Write-LegacySources {
     }
 }
 
+function Write-VersionBuildBat {
+    param([string]$MinecraftVersion)
+    $safeName = $MinecraftVersion -replace '[^0-9A-Za-z.-]', '_'
+    $batPath = Join-Path $projectRoot "build_$safeName.bat"
+    $bat = @"
+@echo off
+cd /d "%~dp0"
+call build_custom.bat $MinecraftVersion
+"@
+    Set-Content -LiteralPath $batPath -Value $bat -Encoding ASCII
+}
+
 function Require-Java25 {
     $javaCommand = Get-Command java.exe -ErrorAction SilentlyContinue
     if (-not $javaCommand) {
@@ -421,6 +433,7 @@ try {
             }
         }
 
+        Write-VersionBuildBat -MinecraftVersion $mc
         $successful.Add($mc)
         Write-Host "SUCCESS for Minecraft $mc"
     }

@@ -26,7 +26,7 @@ ZenithClient is a client-side Fabric utility mod for Minecraft 26.2 built with J
 - Criticals.
 - Auto Totem: refills the offhand with a totem from inventory when one is available.
 - Attribute Swap: temporarily swaps to a selected hotbar slot while attacking, then swaps back.
-- Kill Aura, Reach, Infinite Reach, Mace Kill, and Super Punch controls with right-click settings pages.
+- Kill Aura, Reach, Infinite Reach, and Mace Kill controls with right-click settings pages.
 
 ### Movement
 
@@ -63,6 +63,8 @@ Press Tab while typing `.aut...` in chat to autocomplete `.autovaultclip`.
 5. The current jar for each Minecraft version is mirrored into `minecraft_versions/<minecraft-version>/`.
 
 `build.bat` is the recommended build selector. It shows the current mod version, suggests the next version, and lets you press Enter to keep the current version or type a new one. Type `all` to build 26.2, 26.1.2, 26.1.1, 26.1, 1.21.11, 1.21.10, 1.21.9, 1.21.8, 1.21.7, 1.21.6, 1.21.5, 1.21.4, 1.21.1, 1.20.6, 1.20.5, 1.20.4, and 1.20.1. You can also type one version, or a comma-list like `26.2,1.20.1`.
+
+Each successful target embeds its own Minecraft and Fabric Loader dependency in `fabric.mod.json`, so a `1.21.11` jar declares `~1.21.11` instead of the latest Minecraft version. Successful builds also create root shortcuts like `build_26.2.bat` and `build_1.21.11.bat` for rebuilding one specific target.
 
 ## Git and Releases
 
