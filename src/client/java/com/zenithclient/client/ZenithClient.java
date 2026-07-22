@@ -351,8 +351,7 @@ public final class ZenithClient implements ClientModInitializer {
         int current = selectedHotbarSlot(client);
         if (wanted == current) return;
         restoreSwapSlot = current;
-        restoreSwapAfterTick = ticks + 1;
-        setSelectedHotbarSlot(client, wanted);
+        restoreSwapAfterTick = ticks + Math.max(1, Math.min(5, CONFIG.attributeSwapRestoreDelayTicks));
         client.player.connection.send(new ServerboundSetCarriedItemPacket(wanted));
     }
 
@@ -364,7 +363,6 @@ public final class ZenithClient implements ClientModInitializer {
         int slot = restoreSwapSlot;
         restoreSwapSlot = -1;
         restoreSwapAfterTick = -1;
-        setSelectedHotbarSlot(client, slot);
         client.player.connection.send(new ServerboundSetCarriedItemPacket(slot));
     }
 
@@ -648,14 +646,14 @@ public final class ZenithClient implements ClientModInitializer {
         XRAY_OUTLINE_BLOCKS.clear();
         if (client.player == null || client.level == null || !CONFIG.xray) return;
         BlockPos origin = client.player.blockPosition();
-        int radius = Math.max(12, Math.min(40, client.options.renderDistance().get() * 6));
+        int radius = Math.max(10, Math.min(32, client.options.renderDistance().get() * 4));
         int minY = levelMinY(client);
         int maxY = levelMaxY(client);
-        int minScanY = Math.max(minY, origin.getY() - 48);
-        int maxScanY = Math.min(maxY, origin.getY() + 48);
-        int maxBlocks = 650;
+        int minScanY = Math.max(minY, origin.getY() - 40);
+        int maxScanY = Math.min(maxY, origin.getY() + 40);
+        int maxBlocks = 350;
         int checked = 0;
-        int maxChecks = radius > 28 ? 180000 : 90000;
+        int maxChecks = radius > 24 ? 70000 : 45000;
         for (int x = -radius; x <= radius && XRAY_OUTLINE_BLOCKS.size() < maxBlocks && checked < maxChecks; x++) {
             for (int z = -radius; z <= radius && XRAY_OUTLINE_BLOCKS.size() < maxBlocks && checked < maxChecks; z++) {
                 if (x * x + z * z > radius * radius) continue;

@@ -289,7 +289,7 @@ public final class ModuleSettingsScreen extends Screen {
             case XRAY -> null;
             case FLIGHT -> switch (index) { case 0, 1 -> new Numeric(0.1, 10, 0.1, false); case 2 -> new Numeric(1, 4, 0.1, false); default -> null; };
             case SPEED -> switch (index) { case 1 -> new Numeric(0.1, 10, 0.1, false); default -> null; };
-            case ATTRIBUTE_SWAP -> switch (index) { case 1 -> new Numeric(1, 9, 1, true); default -> null; };
+            case ATTRIBUTE_SWAP -> switch (index) { case 1 -> new Numeric(1, 9, 1, true); case 2 -> new Numeric(1, 5, 1, true); default -> null; };
             case KILL_AURA -> switch (index) { case 1, 2 -> new Numeric(1, 20, 0.5, false); default -> null; };
             case REACH -> switch (index) { case 1 -> new Numeric(3, 20, 0.5, false); default -> null; };
             case MACE_KILL -> switch (index) { case 1 -> new Numeric(4, 10000, 1, false); default -> null; };
@@ -308,7 +308,7 @@ public final class ModuleSettingsScreen extends Screen {
             case XRAY -> 0;
             case FLIGHT -> switch (index) { case 0 -> config.flightSpeed; case 1 -> config.flightVerticalSpeed; case 2 -> config.flightSprintMultiplier; default -> 0; };
             case SPEED -> index == 1 ? config.speedAmount : 0;
-            case ATTRIBUTE_SWAP -> index == 1 ? config.attributeSwapSlot : 0;
+            case ATTRIBUTE_SWAP -> switch (index) { case 1 -> config.attributeSwapSlot; case 2 -> config.attributeSwapRestoreDelayTicks; default -> 0; };
             case KILL_AURA -> switch (index) { case 1 -> config.killAuraRange; case 2 -> config.reachDistance; default -> 0; };
             case REACH -> index == 1 ? config.reachDistance : 0;
             case MACE_KILL -> index == 1 ? config.maceKillHeight : 0;
@@ -332,7 +332,7 @@ public final class ModuleSettingsScreen extends Screen {
             case XRAY -> { }
             case FLIGHT -> { if (index == 0) config.flightSpeed = value; else if (index == 1) config.flightVerticalSpeed = value; else if (index == 2) config.flightSprintMultiplier = value; }
             case SPEED -> { if (index == 1) config.speedAmount = value; }
-            case ATTRIBUTE_SWAP -> { if (index == 1) config.attributeSwapSlot = (int) value; }
+            case ATTRIBUTE_SWAP -> { if (index == 1) config.attributeSwapSlot = (int) value; else if (index == 2) config.attributeSwapRestoreDelayTicks = (int) value; }
             case KILL_AURA -> { if (index == 1) config.killAuraRange = value; else if (index == 2) config.reachDistance = value; }
             case REACH -> { if (index == 1) config.reachDistance = value; }
             case MACE_KILL -> { if (index == 1) config.maceKillHeight = value; }
@@ -355,7 +355,7 @@ public final class ModuleSettingsScreen extends Screen {
             case NO_FIRE_OVERLAY -> { rows.add(row("No Fire Overlay", onOff(config.noFireOverlay))); }
             case FLIGHT -> { rows.add(row("Horizontal speed", trim(config.flightSpeed))); rows.add(row("Vertical speed", trim(config.flightVerticalSpeed))); rows.add(row("Sprint multiplier", trim(config.flightSprintMultiplier) + "x")); }
             case SPEED -> { rows.add(row("Speed", onOff(config.speed))); rows.add(row("Amount", trim(config.speedAmount))); }
-            case ATTRIBUTE_SWAP -> { rows.add(row("Attribute Swap", onOff(config.attributeSwap))); rows.add(row("Hotbar slot", Integer.toString(config.attributeSwapSlot))); }
+            case ATTRIBUTE_SWAP -> { rows.add(row("Attribute Swap", onOff(config.attributeSwap))); rows.add(row("Hotbar slot", Integer.toString(config.attributeSwapSlot))); rows.add(row("Restore delay", config.attributeSwapRestoreDelayTicks + " ticks")); }
             case KILL_AURA -> { rows.add(row("Kill Aura", onOff(config.killAura))); rows.add(row("Range", trim(config.killAuraRange))); rows.add(row("Reach", trim(config.reachDistance))); rows.add(row("Choose entity", empty(config.killAuraSearch) ? "Click to search all mobs/entities" : config.killAuraSearch)); }
             case REACH -> { rows.add(row("Reach", onOff(config.reach))); rows.add(row("Distance", trim(config.reachDistance))); }
             case INFINITE_REACH -> { rows.add(row("Infinite Reach", onOff(config.infiniteReach))); }
@@ -370,7 +370,7 @@ public final class ModuleSettingsScreen extends Screen {
     private int baseOptionCount() {
         return switch (type) {
             case PLAYER -> 9; case ENTITY -> 11; case ITEM, PROJECTILE -> 4; case BLOCKS -> 5; case TRAJECTORY -> 4;
-            case XRAY -> 3; case FLIGHT -> 3; case ATTRIBUTE_SWAP, SPEED, REACH, MACE_KILL, FREECAM -> 2; case KILL_AURA -> 4; case NO_BLINDNESS, NO_FIRE_OVERLAY, INFINITE_REACH -> 1; default -> 0;
+            case XRAY -> 3; case FLIGHT -> 3; case ATTRIBUTE_SWAP -> 3; case SPEED, REACH, MACE_KILL, FREECAM -> 2; case KILL_AURA -> 4; case NO_BLINDNESS, NO_FIRE_OVERLAY, INFINITE_REACH -> 1; default -> 0;
         };
     }
 

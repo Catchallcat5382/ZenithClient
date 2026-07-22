@@ -3,7 +3,6 @@
   "package": "com.zenithclient.client.mixin",
   "compatibilityLevel": "JAVA_25",
   "client": [
-    "ModelBlockRendererMixin",
     "LocalPlayerNoSlowMixin",
     "WebBlockNoSlowMixin",
     "CriticalsMixin",

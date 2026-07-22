@@ -54,8 +54,11 @@ public final class ScreenSpaceVisualRenderer {
             if (!player && !item && !projectile && (!config.entityHighlights || !ZenithClient.matchesEntityMode(entity))) continue;
 
             AABB espBox = lerpedBox(entity, tickDelta);
-            ScreenPoint point = projection.project(new Vec3((espBox.minX + espBox.maxX) * 0.5, espBox.maxY + 0.25, (espBox.minZ + espBox.maxZ) * 0.5));
-            if (point == null) continue;
+            ScreenPoint[] corners = projectCorners(projection, espBox);
+            ScreenRect rect = bounds(corners);
+            ScreenPoint boxTop = rect == null ? null : new ScreenPoint((rect.minX + rect.maxX) / 2, rect.minY);
+            ScreenPoint anchor = boxTop != null ? boxTop : projection.project(new Vec3((espBox.minX + espBox.maxX) * 0.5, espBox.maxY + 0.25, (espBox.minZ + espBox.maxZ) * 0.5));
+            if (anchor == null) continue;
 
             int outlineColor = player ? config.playerOutlineColor : item ? config.itemEspColor : projectile ? config.projectileEspColor : config.entityOutlineColor;
             boolean tracers = player ? config.playerTracers : item ? config.itemTracers : projectile ? config.projectileTracers : config.entityTracers;
@@ -63,12 +66,13 @@ public final class ScreenSpaceVisualRenderer {
 
             if (tracers) {
                 ScreenPoint from = new ScreenPoint(projection.width / 2, projection.height - 2);
-                drawLine(graphics, from, point, withAlpha(outlineColor, 210), 1);
+                ScreenPoint target = rect == null ? anchor : new ScreenPoint((rect.minX + rect.maxX) / 2, rect.maxY);
+                drawLine(graphics, from, target, withAlpha(outlineColor, 210), 1);
             }
             if (nameTags) {
                 String name = entity.getName().getString();
-                int textX = point.x - client.font.width(name) / 2;
-                graphics.text(client.font, name, textX, Math.max(2, point.y - 10), withAlpha(outlineColor, 255), true);
+                int textX = anchor.x - client.font.width(name) / 2;
+                graphics.text(client.font, name, textX, Math.max(2, anchor.y - 10), withAlpha(outlineColor, 255), true);
             }
             rendered++;
         }

@@ -82,6 +82,7 @@ public final class ZenithConfig {
     public double flightVerticalSpeed = 1.0;
     public double flightSprintMultiplier = 2.0;
     public int attributeSwapSlot = 1;
+    public int attributeSwapRestoreDelayTicks = 2;
     public double killAuraRange = 4.5;
     public double reachDistance = 4.5;
     public double speedAmount = 1.5;
@@ -154,6 +155,7 @@ public final class ZenithConfig {
         if (entityEspShape == null) entityEspShape = EspShape.BOX_3D;
         if (xrayMode == null) xrayMode = XrayMode.ORES;
         attributeSwapSlot = (int) clamp(attributeSwapSlot, 1, 9, 1);
+        attributeSwapRestoreDelayTicks = (int) clamp(attributeSwapRestoreDelayTicks, 1, 5, 2);
         killAuraRange = clamp(killAuraRange, 1.0, 20.0, 4.5);
         reachDistance = clamp(reachDistance, 3.0, 20.0, 4.5);
         speedAmount = clamp(speedAmount, 0.1, 10.0, 1.5);
