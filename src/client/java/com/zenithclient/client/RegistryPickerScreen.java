@@ -11,17 +11,26 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
+/** Searchable multi-select registry list used by ESP, aura, block ESP and X-Ray. */
 public final class RegistryPickerScreen extends Screen {
     public enum Mode { ENTITY_ESP, KILL_AURA, BLOCK_ESP, XRAY }
-    private record Row(String id, int x, int y, int w, int h) { }
+    private enum Action { ENTRY, CLEAR, SELECT_VISIBLE, DONE }
+    private record Row(Action action, String id, int x, int y, int w, int h) {
+        boolean contains(double mx, double my) {
+            return mx >= x && mx < x + w && my >= y && my < y + h;
+        }
+    }
 
     private final Screen parent;
     private final ZenithConfig config;
     private final Mode mode;
     private final List<String> entries;
+    private final Set<String> selected = new LinkedHashSet<>();
     private final List<Row> rows = new ArrayList<>();
     private String search = "";
     private int scroll;
@@ -33,6 +42,7 @@ public final class RegistryPickerScreen extends Screen {
         this.config = config;
         this.mode = mode;
         this.entries = loadEntries(mode);
+        readSelected();
     }
 
     public static RegistryPickerScreen of(Screen parent, ZenithConfig config, Mode mode) {
@@ -41,55 +51,126 @@ public final class RegistryPickerScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float tickDelta) {
-        int w = Math.min(560, width - 30);
-        int h = Math.min(420, height - 30);
-        int left = (width - w) / 2;
-        int top = (height - h) / 2;
+        int panelW = Math.min(650, width - 28);
+        int panelH = Math.min(470, height - 24);
+        int left = (width - panelW) / 2;
+        int top = (height - panelH) / 2;
+        int accent = 0xFFFF5A1F;
         rows.clear();
 
-        g.fill(0, 0, width, height, 0x88000000);
-        g.fill(left, top, left + w, top + h, 0xF0181818);
-        g.fill(left, top, left + w, top + 3, 0xFFFF6B35);
-        g.text(font, titleText(), left + 14, top + 14, 0xFFFFFFFF, true);
-        g.text(font, "Search: " + (search.isEmpty() ? "" : search), left + 14, top + 32, 0xFFCCCCCC, false);
-        g.text(font, "Click one to use it. Backspace edits. Esc returns.", left + 14, top + h - 18, 0xFF999999, false);
+        g.fill(0, 0, width, height, 0xB0060708);
+        g.fill(left - 7, top - 7, left + panelW + 7, top + panelH + 7, 0x52000000);
+        g.fill(left, top, left + panelW, top + panelH, 0xF5090A0C);
+        frame(g, left, top, panelW, panelH, accent);
+        g.fill(left + 1, top + 1, left + panelW - 1, top + 66, 0xFF0E1013);
+        g.fill(left + 18, top + 60, left + 138, top + 62, accent);
 
-        int y = top + 56 - scroll;
-        drawRow(g, mouseX, mouseY, "__clear__", left + 12, y, w - 24, "Clear filter");
-        y += 24;
-        int shown = 0;
-        for (String id : filtered()) {
-            if (y > top + h - 34) break;
-            if (y >= top + 52) {
-                drawRow(g, mouseX, mouseY, id, left + 12, y, w - 24, id);
-                shown++;
+        g.text(font, titleText().toUpperCase(Locale.ROOT), left + 18, top + 14, 0xFFFFFFFF, true);
+        g.text(font, selected.size() + " SELECTED", left + panelW - 102, top + 14, accent, true);
+
+        int searchX = left + 18;
+        int searchY = top + 35;
+        int searchW = panelW - 36;
+        g.fill(searchX, searchY, searchX + searchW, searchY + 20, 0xFF15181D);
+        frame(g, searchX, searchY, searchW, 20, search.isEmpty() ? 0xFF343941 : accent);
+        String shownSearch = search.isEmpty() ? "Search entities or blocks..." : search + "_";
+        g.text(font, shownSearch, searchX + 8, searchY + 7,
+                search.isEmpty() ? 0xFF737A84 : 0xFFFFFFFF, false);
+
+        int contentTop = top + 74;
+        int contentBottom = top + panelH - 48;
+        int rowX = left + 18;
+        int rowW = panelW - 45;
+        List<String> filtered = filtered();
+        int rowHeight = 25;
+        int totalHeight = filtered.size() * rowHeight;
+        maxScroll = Math.max(0, totalHeight - (contentBottom - contentTop));
+        scroll = Math.max(0, Math.min(maxScroll, scroll));
+
+        g.enableScissor(rowX, contentTop, rowX + rowW, contentBottom);
+        int y = contentTop - scroll;
+        for (String id : filtered) {
+            if (y + 22 >= contentTop && y < contentBottom) {
+                drawEntry(g, mouseX, mouseY, id, rowX, y, rowW, accent);
             }
-            y += 24;
-            if (shown > 120) break;
+            y += rowHeight;
         }
-        if (shown == 0) {
-            g.text(font, entries.isEmpty() ? "Registry is not loaded yet." : "No matches. Backspace or type another search.",
-                    left + 18, top + 64, 0xFFFFC107, false);
+        if (filtered.isEmpty()) {
+            g.text(font, "No registry entries match the current search.", rowX + 8,
+                    contentTop + 12, 0xFFFFC15A, false);
         }
-        maxScroll = Math.max(0, y + scroll - (top + h - 30));
+        g.disableScissor();
+
+        if (maxScroll > 0) {
+            int trackX = left + panelW - 18;
+            int trackH = contentBottom - contentTop;
+            int thumbH = Math.max(28, trackH * trackH / Math.max(trackH, totalHeight));
+            int thumbY = contentTop + (trackH - thumbH) * scroll / maxScroll;
+            g.fill(trackX, contentTop, trackX + 3, contentBottom, 0xFF25292F);
+            g.fill(trackX, thumbY, trackX + 3, thumbY + thumbH, accent);
+        }
+
+        int buttonY = top + panelH - 34;
+        drawButton(g, mouseX, mouseY, Action.CLEAR, left + 18, buttonY, 84, 21, "CLEAR", accent);
+        drawButton(g, mouseX, mouseY, Action.SELECT_VISIBLE, left + 110, buttonY, 132, 21,
+                "SELECT MATCHES", accent);
+        drawButton(g, mouseX, mouseY, Action.DONE, left + panelW - 96, buttonY, 78, 21,
+                "DONE", accent);
+
         super.extractRenderState(g, mouseX, mouseY, tickDelta);
     }
 
-    private void drawRow(GuiGraphicsExtractor g, int mouseX, int mouseY, String id, int x, int y, int w, String label) {
-        boolean hover = mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + 21;
-        g.fill(x, y, x + w, y + 21, hover ? 0x44FF6B35 : 0x22000000);
-        g.text(font, label, x + 8, y + 6, id.equals("__clear__") ? 0xFFFFC107 : 0xFFE8E8E8, false);
-        rows.add(new Row(id, x, y, w, 21));
+    private void drawEntry(GuiGraphicsExtractor g, int mx, int my, String id,
+                           int x, int y, int w, int accent) {
+        boolean checked = selected.contains(id);
+        boolean hover = inside(mx, my, x, y, w, 22);
+        g.fill(x, y, x + w, y + 22,
+                checked ? 0x332FF55A : hover ? 0xFF191C21 : 0xFF111318);
+        frame(g, x, y, w, 22, checked ? accent : hover ? 0xFF565D67 : 0xFF2C3036);
+
+        int boxX = x + 7;
+        int boxY = y + 5;
+        g.fill(boxX, boxY, boxX + 12, boxY + 12, checked ? accent : 0xFF20242A);
+        frame(g, boxX, boxY, 12, 12, checked ? 0xFFFFA12B : 0xFF555C66);
+        if (checked) {
+            g.fill(boxX + 3, boxY + 5, boxX + 5, boxY + 8, 0xFFFFFFFF);
+            g.fill(boxX + 5, boxY + 7, boxX + 9, boxY + 9, 0xFFFFFFFF);
+        }
+
+        String display = id.startsWith("minecraft:") ? id.substring("minecraft:".length()) : id;
+        g.text(font, display, x + 27, y + 7, checked || hover ? 0xFFFFFFFF : 0xFFB9BDC3, false);
+        rows.add(new Row(Action.ENTRY, id, x, y, w, 22));
+    }
+
+    private void drawButton(GuiGraphicsExtractor g, int mx, int my, Action action,
+                            int x, int y, int w, int h, String text, int accent) {
+        boolean hover = inside(mx, my, x, y, w, h);
+        g.fill(x, y, x + w, y + h, hover ? accent : 0xFF111318);
+        frame(g, x, y, w, h, accent);
+        g.text(font, text, x + (w - font.width(text)) / 2, y + 7,
+                hover ? 0xFF08090B : 0xFFFFFFFF, true);
+        rows.add(new Row(action, "", x, y, w, h));
     }
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         for (Row row : rows) {
-            if (event.x() < row.x || event.x() >= row.x + row.w || event.y() < row.y || event.y() >= row.y + row.h) continue;
-            apply(row.id.equals("__clear__") ? "" : row.id);
-            config.save();
-            if (mode == Mode.XRAY) ZenithClient.refreshWorldRenderer();
-            onClose();
+            if (!row.contains(event.x(), event.y())) continue;
+            switch (row.action) {
+                case ENTRY -> {
+                    if (!selected.add(row.id)) selected.remove(row.id);
+                    saveSelected();
+                }
+                case CLEAR -> {
+                    selected.clear();
+                    saveSelected();
+                }
+                case SELECT_VISIBLE -> {
+                    selected.addAll(filtered());
+                    saveSelected();
+                }
+                case DONE -> onClose();
+            }
             return true;
         }
         return super.mouseClicked(event, doubleClick);
@@ -103,20 +184,19 @@ public final class RegistryPickerScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        if (event.key() == GLFW.GLFW_KEY_ESCAPE) { onClose(); return true; }
+        if (event.key() == GLFW.GLFW_KEY_ESCAPE || event.key() == GLFW.GLFW_KEY_ENTER
+                || event.key() == GLFW.GLFW_KEY_KP_ENTER) {
+            onClose();
+            return true;
+        }
         if (event.key() == GLFW.GLFW_KEY_BACKSPACE) {
             if (!search.isEmpty()) search = search.substring(0, search.length() - 1);
             scroll = 0;
             return true;
         }
-        if (event.key() == GLFW.GLFW_KEY_ENTER || event.key() == GLFW.GLFW_KEY_KP_ENTER) {
-            List<String> matches = filtered();
-            if (!matches.isEmpty()) {
-                apply(matches.get(0));
-                config.save();
-                if (mode == Mode.XRAY) ZenithClient.refreshWorldRenderer();
-                onClose();
-            }
+        if (event.key() == GLFW.GLFW_KEY_DELETE) {
+            search = "";
+            scroll = 0;
             return true;
         }
         return super.keyPressed(event);
@@ -125,7 +205,7 @@ public final class RegistryPickerScreen extends Screen {
     @Override
     public boolean charTyped(CharacterEvent input) {
         int c = input.codepoint();
-        if (c >= 32 && c < 127) {
+        if (c >= 32 && c < 127 && search.length() < 80) {
             search += Character.toString((char) c).toLowerCase(Locale.ROOT);
             scroll = 0;
             return true;
@@ -135,16 +215,38 @@ public final class RegistryPickerScreen extends Screen {
 
     @Override
     public void onClose() {
+        saveSelected();
         if (minecraft != null) minecraft.setScreenAndShow(parent);
     }
 
-    private void apply(String id) {
-        switch (mode) {
-            case ENTITY_ESP -> config.entitySearch = id;
-            case KILL_AURA -> config.killAuraSearch = id;
-            case BLOCK_ESP -> config.blockSearch = id;
-            case XRAY -> config.xraySearch = id;
+    private void readSelected() {
+        String raw = currentValue();
+        if (raw == null || raw.isBlank()) return;
+        for (String token : raw.split(",")) {
+            String id = token.trim().toLowerCase(Locale.ROOT);
+            if (!id.isEmpty() && entries.contains(id)) selected.add(id);
         }
+    }
+
+    private void saveSelected() {
+        String value = String.join(",", selected);
+        switch (mode) {
+            case ENTITY_ESP -> config.entitySearch = value;
+            case KILL_AURA -> config.killAuraSearch = value;
+            case BLOCK_ESP -> config.blockSearch = value;
+            case XRAY -> config.xraySearch = value;
+        }
+        config.save();
+        if (mode == Mode.XRAY) ZenithClient.refreshWorldRenderer();
+    }
+
+    private String currentValue() {
+        return switch (mode) {
+            case ENTITY_ESP -> config.entitySearch;
+            case KILL_AURA -> config.killAuraSearch;
+            case BLOCK_ESP -> config.blockSearch;
+            case XRAY -> config.xraySearch;
+        };
     }
 
     private List<String> filtered() {
@@ -157,10 +259,10 @@ public final class RegistryPickerScreen extends Screen {
 
     private String titleText() {
         return switch (mode) {
-            case ENTITY_ESP -> "Choose Entity ESP Target";
-            case KILL_AURA -> "Choose Kill Aura Target";
-            case BLOCK_ESP -> "Choose Block ESP Target";
-            case XRAY -> "Choose X-Ray Block";
+            case ENTITY_ESP -> "Entity ESP Targets";
+            case KILL_AURA -> "Kill Aura Targets";
+            case BLOCK_ESP -> "Block ESP Targets";
+            case XRAY -> "X-Ray Blocks";
         };
     }
 
@@ -173,5 +275,16 @@ public final class RegistryPickerScreen extends Screen {
         }
         values.sort(Comparator.naturalOrder());
         return values;
+    }
+
+    private static void frame(GuiGraphicsExtractor g, int x, int y, int w, int h, int color) {
+        g.fill(x, y, x + w, y + 1, color);
+        g.fill(x, y + h - 1, x + w, y + h, color);
+        g.fill(x, y, x + 1, y + h, color);
+        g.fill(x + w - 1, y, x + w, y + h, color);
+    }
+
+    private static boolean inside(double mx, double my, int x, int y, int w, int h) {
+        return mx >= x && mx < x + w && my >= y && my < y + h;
     }
 }

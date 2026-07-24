@@ -10,7 +10,7 @@ import net.minecraft.resources.Identifier;
 import java.util.ArrayList;
 import java.util.List;
 
-/** ZenithClient's orange-and-charcoal Click GUI. */
+/** ZenithClient Click GUI. */
 public final class ZenithScreen extends Screen {
     private static final Identifier LOGO =
             Identifier.fromNamespaceAndPath(ZenithClient.MOD_ID, "textures/icon.png");
@@ -252,7 +252,7 @@ public final class ZenithScreen extends Screen {
         configButton(g, mx, my, HitType.CHAT_MESSAGES, x + bw + gap, y + 54, bw,
                 "Chat messages", config.chatToggleMessages ? "ON" : "OFF", accent);
         configButton(g, mx, my, HitType.RESET_THEME, x, y + 108, bw,
-                "Zenith orange theme", "RESTORE", accent);
+                "Zenith theme", "RESTORE", accent);
     }
 
     private void configButton(GuiGraphicsExtractor g, int mx, int my, HitType type,

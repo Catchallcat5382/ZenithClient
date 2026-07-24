@@ -4,54 +4,84 @@
 
 <p align="center">
   <strong>Precision. Performance. Control.</strong><br>
-  A dark orange client-side Fabric utility mod for Minecraft, built with JDK 25.
+  A modular Fabric client built for combat, rendering, movement, and full in-game control.
 </p>
 
 ---
 
-## ZenithClient
+# ZenithClient
 
-ZenithClient combines a custom orange-and-charcoal Click GUI with configurable visual, movement, combat, and HUD utilities. The menu uses the same branding as the banner above, including a compact top-left emblem that expands into the full ZenithClient banner when hovered.
+ZenithClient is a configurable Minecraft client with a custom Click GUI and a growing set of combat, render, movement, and HUD modules. Every module can be toggled from the menu, assigned its own keybind, and configured from its settings page.
 
-## Highlights
+## Modules
 
-| Area | Included features |
-| --- | --- |
-| **Visuals** | Player ESP, Entity ESP, Item ESP, Projectile ESP, Block ESP, trajectories, X-Ray, No Blindness, and No Fire Overlay |
-| **Combat** | Criticals, Auto Totem, Attribute Swap, Kill Aura, Reach, Infinite Reach, and bounded Mace Kill controls |
-| **Movement** | Flight, Speed, Auto Sprint, No Slow, No Stun, No Fall, Air Jump, and independent Freecam |
-| **HUD** | Fullbright, FPS display, and coordinates |
+### Render
+
+- Player ESP, Entity ESP, Item ESP, and Projectile ESP
+- Model outlines, boxes, fills, tracers, labels, colors, thickness, and range
+- Block ESP with registry-based block selection
+- X-Ray with selectable block lists and controlled renderer rebuilding
+- Projectile trajectory prediction
+- Fullbright, No Blindness, and No Fire Overlay
+- Freecam with independent camera movement
+
+### Combat
+
+- Criticals
+- Attribute Swap with configurable hotbar slot and restore delay
+- Auto Totem
+- Kill Aura with a selectable entity target list
+- Reach and Infinite Reach controls
+- Mace Kill with a small configurable simulated fall
+
+### Movement
+
+- Flight with separate horizontal and vertical speeds
+- Speed
+- Auto Sprint
+- No Slow
+- No Stun
+- No Fall
+- Air Jump
+
+### HUD
+
+- FPS display
+- Coordinates display
+- Toggle notifications
+
+## Target lists
+
+Entity ESP, Kill Aura, Block ESP, and X-Ray use searchable multi-select registry lists. Open the module settings and click or right-click the target row to choose multiple entities or blocks. Selected entries are saved as one module list instead of replacing the previous choice every time.
 
 ## Controls
 
-- Press **Right Shift** in a world to open ZenithClient.
-- **Left-click** a module card to toggle it.
-- **Right-click** a module card to open its settings.
-- Numeric settings support sliders and direct typing.
-- The top-left Zenith emblem expands into the full banner while hovered.
+- **Right Shift** — open or close ZenithClient
+- **Left-click a module** — toggle it
+- **Right-click a module** — open its settings
+- **Click or right-click a target-list row** — open the multi-select registry menu
+- **Escape** — return to the previous screen
 
-## Build
+## Building
 
 1. Install **JDK 25**.
 2. Run `build.bat`.
-3. Choose `all` or a supported Minecraft version.
-4. Built JAR files are copied into the existing version and release folders used by the project.
+3. Choose one Minecraft version, a comma-separated list, or `all`.
+4. Choose the next ZenithClient version.
+5. The version is saved only after the requested build completes successfully. Failed builds restore the previous version automatically.
 
-## Project layout
+Successful JAR files are placed in `minecraft_versions/`, `releases/v<version>/`, and `releases/latest/`.
 
-- Client source: `src/client/java/com/zenithclient/client/`
-- Resources: `src/main/resources/assets/zenithclient/`
-- Current per-version JARs: `minecraft_versions/`
-- Release outputs: `releases/`
+## Latest update
 
-## Git and releases
-
-- `push_changes.bat` commits and pushes the current project to `main`.
-- `release_version.bat` builds, commits, tags, pushes, and uploads the selected release artifacts.
-- The README banner is stored at `docs/zenith-banner.png`, so it appears automatically on GitHub after these files are committed.
+- Added searchable multi-select entity and block target lists.
+- Updated the Click GUI and expanding ZenithClient logo banner.
+- Stabilized X-Ray renderer hooks, ESP glow handling, Attribute Swap, Freecam state, and Criticals packet limits.
+- Fixed failed builds incorrectly leaving the project on the attempted version.
+- Failed builds now print the useful end of the Gradle log directly in the build window.
 
 ---
 
 <p align="center">
-  <sub>ZenithClient is an independent client-side Fabric project and is not affiliated with Mojang or Microsoft.</sub>
+  <sub>ZenithClient is an independent project and is not affiliated with Mojang or Microsoft.</sub>
 </p>

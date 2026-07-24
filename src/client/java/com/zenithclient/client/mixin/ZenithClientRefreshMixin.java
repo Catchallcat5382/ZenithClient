@@ -7,13 +7,14 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Replaces the old nested section-dirty loop with one renderer-wide refresh. */
+/** Replaces the expensive section-by-section X-Ray refresh with one renderer refresh. */
 @Mixin(value = ZenithClient.class, remap = false)
 public abstract class ZenithClientRefreshMixin {
-    @Inject(method = "refreshWorldRenderer", at = @At("HEAD"), cancellable = true, remap = false, require = 0)
+    @Inject(method = "refreshWorldRenderer()V", at = @At("HEAD"), cancellable = true,
+            remap = false, require = 0)
     private static void zenith$stableRendererRefresh(CallbackInfo ci) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level != null) mc.levelRenderer.allChanged();
+        Minecraft client = Minecraft.getInstance();
+        if (client.level != null) client.levelRenderer.allChanged();
         ci.cancel();
     }
 }
