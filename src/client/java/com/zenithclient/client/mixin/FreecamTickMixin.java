@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Minecraft.class)
 public abstract class FreecamTickMixin {
-    @Inject(method = "tick", at = @At("TAIL"), require = 0)
+    @Inject(method = "tick", at = @At("HEAD"), require = 0)
     private void zenith$tickFreecam(CallbackInfo ci) {
         Minecraft mc = (Minecraft) (Object) this;
         var config = ZenithClient.getConfig();

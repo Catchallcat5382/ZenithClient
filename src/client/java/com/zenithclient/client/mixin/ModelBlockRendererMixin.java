@@ -2,29 +2,38 @@ package com.zenithclient.client.mixin;
 
 import com.zenithclient.client.XrayHooks;
 import com.zenithclient.client.ZenithClient;
+import net.minecraft.client.renderer.block.BlockAndTintGetter;
+import net.minecraft.client.renderer.block.BlockQuadOutput;
+import net.minecraft.client.renderer.block.ModelBlockRenderer;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.world.level.block.RenderShape;
-import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(BlockBehaviour.BlockStateBase.class)
+import java.util.List;
+
+/** X-Ray hooks for Minecraft's normal block renderer. */
+@Mixin(ModelBlockRenderer.class)
 public abstract class ModelBlockRendererMixin {
-    @Inject(method = "getRenderShape", at = @At("HEAD"), cancellable = true, require = 0)
-    private void zenith$xrayRenderShape(CallbackInfoReturnable<RenderShape> cir) {
-        BlockState state = (BlockState) (Object) this;
-        if (XrayHooks.alpha(state, null) == 0) cir.setReturnValue(RenderShape.INVISIBLE);
+    @Inject(method = {"tesselateFlat", "tesselateAmbientOcclusion"}, at = @At("HEAD"),
+            cancellable = true, require = 0)
+    private void zenith$hideNonTargets(BlockQuadOutput output, float x, float y, float z,
+                                        List<BlockStateModelPart> parts, BlockAndTintGetter level,
+                                        BlockState state, BlockPos pos, CallbackInfo ci) {
+        if (XrayHooks.alpha(state, pos) == 0) ci.cancel();
     }
 
-    @Inject(method = "skipRendering", at = @At("HEAD"), cancellable = true, require = 0)
-    private void zenith$xrayFaces(BlockState adjacent, Direction direction, CallbackInfoReturnable<Boolean> cir) {
-        if (!ZenithClient.getConfig().xray) return;
-        BlockState state = (BlockState) (Object) this;
-        if (!XrayHooks.isBlocked(state.getBlock()) && XrayHooks.isBlocked(adjacent.getBlock())) {
-            cir.setReturnValue(false);
+    @Inject(method = "shouldRenderFace", at = @At("HEAD"), cancellable = true, require = 0)
+    private static void zenith$forceEveryTargetFace(BlockAndTintGetter level, BlockState state,
+                                                     Direction direction, BlockPos neighborPos,
+                                                     CallbackInfoReturnable<Boolean> cir) {
+        if (ZenithClient.getConfig().xray && !XrayHooks.isBlocked(state.getBlock())) {
+            cir.setReturnValue(true);
         }
     }
 }

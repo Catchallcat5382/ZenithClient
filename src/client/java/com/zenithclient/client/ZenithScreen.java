@@ -75,11 +75,14 @@ public final class ZenithScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
-        int pw = Math.min(820, Math.max(600, width - 42));
-        int ph = Math.min(460, Math.max(350, height - 38));
-        int left = (width - pw) / 2;
-        int top = (height - ph) / 2;
-        int sidebar = 168;
+        int pw = Math.min(820, Math.max(420, width - 24));
+        int ph = Math.min(460, Math.max(280, height - 24));
+        pw = Math.min(pw, Math.max(1, width - 12));
+        ph = Math.min(ph, Math.max(1, height - 12));
+        int left = Math.max(6, (width - pw) / 2);
+        int top = Math.max(6, (height - ph) / 2);
+        int sidebar = Math.max(132, Math.min(168, pw / 4));
+        boolean compact = ph < 390;
 
         int accent = opaque(config.uiAccentColor);
         int panel = alpha(0xFF090A0C, config.uiPanelOpacity);
@@ -115,33 +118,37 @@ public final class ZenithScreen extends Screen {
         g.text(font, "CLIENT", left + 76, top + 34, 0xFFF4F4F5, true);
         g.text(font, ZenithClient.versionLabel(), left + 76, top + 49, 0xFF777D86, false);
 
-        int ty = top + 82;
+        int tabHeight = compact ? 25 : 32;
+        int tabStep = compact ? 29 : 39;
+        int ty = top + (compact ? 72 : 82);
         for (Category c : Category.values()) {
             boolean active = c == selectedCategory;
-            boolean hover = inside(mouseX, mouseY, left + 13, ty, sidebar - 26, 32);
+            boolean hover = inside(mouseX, mouseY, left + 13, ty, sidebar - 26, tabHeight);
             if (active || hover) {
-                g.fill(left + 13, ty, left + sidebar - 13, ty + 32,
+                g.fill(left + 13, ty, left + sidebar - 13, ty + tabHeight,
                         active ? alpha(accent, 20) : 0xC017191D);
-                g.fill(left + 13, ty, left + 16, ty + 32, active ? accent : alpha(accent, 55));
-                g.fill(left + 16, ty + 31, left + sidebar - 13, ty + 32,
+                g.fill(left + 13, ty, left + 16, ty + tabHeight, active ? accent : alpha(accent, 55));
+                g.fill(left + 16, ty + tabHeight - 1, left + sidebar - 13, ty + tabHeight,
                         active ? alpha(accent, 55) : 0x243A3D42);
             }
             String tab = label(c).toUpperCase();
-            g.text(font, tab, left + 28, ty + 12,
+            g.text(font, tab, left + 28, ty + (tabHeight - 8) / 2,
                     active ? 0xFFFFFFFF : hover ? 0xFFF0F0F1 : 0xFF888E97, active);
-            hitboxes.add(new Hitbox(HitType.TAB, c.ordinal(), left + 13, ty, sidebar - 26, 32));
-            ty += 39;
+            hitboxes.add(new Hitbox(HitType.TAB, c.ordinal(), left + 13, ty, sidebar - 26, tabHeight));
+            ty += tabStep;
         }
 
-        g.fill(left + 13, top + ph - 57, left + sidebar - 13, top + ph - 56, 0x263A3D42);
-        g.text(font, "LEFT CLICK", left + 16, top + ph - 45, accent, true);
-        g.text(font, "Toggle", left + 78, top + ph - 45, 0xFF777D86, false);
-        g.text(font, "RIGHT CLICK", left + 16, top + ph - 31, 0xFFF2F2F3, true);
-        g.text(font, "Settings", left + 88, top + ph - 31, 0xFF777D86, false);
+        if (!compact) {
+            g.fill(left + 13, top + ph - 57, left + sidebar - 13, top + ph - 56, 0x263A3D42);
+            g.text(font, "LEFT CLICK", left + 16, top + ph - 45, accent, true);
+            g.text(font, "Toggle", left + 78, top + ph - 45, 0xFF777D86, false);
+            g.text(font, "RIGHT CLICK", left + 16, top + ph - 31, 0xFFF2F2F3, true);
+            g.text(font, "Settings", left + 88, top + ph - 31, 0xFF777D86, false);
+        }
 
-        int cx = left + sidebar + 22;
-        int cy = top + 78;
-        int cw = pw - sidebar - 44;
+        int cx = left + sidebar + (compact ? 14 : 22);
+        int cy = top + (compact ? 68 : 78);
+        int cw = pw - sidebar - (compact ? 28 : 44);
         g.text(font, label(selectedCategory).toUpperCase(), cx, top + 20, 0xFFFFFFFF, true);
         g.text(font, subtitle(selectedCategory), cx, top + 36, 0xFF858B94, false);
 
@@ -154,13 +161,17 @@ public final class ZenithScreen extends Screen {
             drawConfig(g, mouseX, mouseY, cx, cy, cw, accent);
         } else {
             List<Module> modules = modules(selectedCategory);
-            int gap = 12;
+            int gap = compact ? 7 : 12;
             int bw = (cw - gap) / 2;
+            int rows = Math.max(1, (modules.size() + 1) / 2);
+            int available = Math.max(1, top + ph - 48 - cy);
+            int cardH = Math.max(28, Math.min(42, (available - gap * (rows - 1)) / rows));
+            int rowStep = cardH + gap;
             for (int i = 0; i < modules.size(); i++) {
                 Module module = modules.get(i);
                 int x = cx + (i % 2) * (bw + gap);
-                int y = cy + (i / 2) * 52;
-                drawModule(g, mouseX, mouseY, module, x, y, bw, 42, accent, cardOpacity);
+                int y = cy + (i / 2) * rowStep;
+                drawModule(g, mouseX, mouseY, module, x, y, bw, cardH, accent, cardOpacity);
             }
         }
 
@@ -193,17 +204,19 @@ public final class ZenithScreen extends Screen {
         if (bannerReveal <= 0.01F) return;
         int x = left + 13;
         int y = top + 12;
+        int fixedHeight = 54;
         int collapsedW = 54;
-        int expandedW = 312;
-        int drawW = collapsedW + Math.round((expandedW - collapsedW) * easeOut(bannerReveal));
-        int drawH = Math.max(54, Math.round(drawW / 3.0F));
-        g.fill(x - 4, y - 4, x + drawW + 4, y + drawH + 4, 0xB8000000);
-        g.fill(x, y, x + drawW, y + drawH, 0xFF07080A);
-        drawFrame(g, x, y, drawW, drawH, accent);
-        g.enableScissor(x + 2, y + 2, x + drawW - 2, y + drawH - 2);
-        g.blit(RenderPipelines.GUI_TEXTURED, BANNER, x + 2, y + 2,
-                0, 0, Math.max(1, drawW - 4), Math.max(1, drawH - 4),
+        int fullBannerW = 180;
+        int revealW = collapsedW + Math.round((fullBannerW - collapsedW) * easeOut(bannerReveal));
+
+        // Keep height fixed and reveal only additional pixels to the right.
+        g.fill(x - 4, y - 4, x + revealW + 4, y + fixedHeight + 4, 0xB8000000);
+        g.enableScissor(x, y, x + revealW, y + fixedHeight);
+        g.fill(x, y, x + fullBannerW, y + fixedHeight, 0xFF07080A);
+        g.blit(RenderPipelines.GUI_TEXTURED, BANNER, x, y,
+                0, 0, fullBannerW, fixedHeight,
                 1024, 341, 1024, 341, 0xFFFFFFFF);
+        drawFrame(g, x, y, fullBannerW, fixedHeight, accent);
         g.disableScissor();
     }
 

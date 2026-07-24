@@ -74,13 +74,17 @@ Successful JAR files are placed in `minecraft_versions/`, `releases/v<version>/`
 
 ## Latest update
 
-- Fixed the startup crash caused by loading a normal Attribute Swap helper from the reserved Mixin package.
-- Moved Attribute Swap runtime state into the regular modules package.
-- Kept the local selected slot and server-held slot synchronized before and after attacks.
-- Fixed the Minecraft 26.2 renderer refresh and Freecam mappings.
-- Kept failed-build version rollback so unsuccessful builds do not advance the project version.
-- Added searchable multi-select entity and block target lists.
-- Stabilized X-Ray renderer hooks, ESP glow handling, Freecam state, and bounded Criticals behavior.
+- Reworked X-Ray so selected blocks generate every face instead of only faces that were already exposed.
+- Added optional Sodium and Iris-compatible X-Ray hooks without requiring Sodium to compile the project.
+- Fixed stale white ESP outlines by tracking only entities that ZenithClient actually controlled and clearing them when they leave range or the module is disabled.
+- Empty Entity ESP target lists now mean no entities selected instead of silently falling back to all entities.
+- Expanded the registry picker to show the full loaded entity registry with searchable multi-selection and clear selection counts.
+- Reworked Freecam input so the real player remains anchored while the camera moves and rotates independently.
+- Raised the bounded Mace Kill simulated fall setting to 4.0–6.0 blocks.
+- Kept the logo hover animation at a fixed height so it unfolds only to the right.
+- Added compact layout sizing so the top and bottom of the Click GUI remain inside smaller game windows.
+- Added extra safe padding to the Mod Menu icon so it is not cropped or squeezed.
+- Kept failed-build version rollback and the Attribute Swap startup-crash fix.
 
 ---
 

@@ -29,7 +29,7 @@ public abstract class CriticalsMixin {
         double z = mc.player.getZ();
 
         if (config.maceKill && mc.player.getMainHandItem().getItem() instanceof MaceItem) {
-            double simulatedFall = Math.max(1.6D, Math.min(3.0D, config.maceKillHeight));
+            double simulatedFall = Math.max(4.0D, Math.min(6.0D, config.maceKillHeight));
             mc.player.connection.send(new ServerboundMovePlayerPacket.Pos(x, y + 0.001D, z, false, false));
             mc.player.connection.send(new ServerboundMovePlayerPacket.Pos(x, y + simulatedFall, z, false, false));
             mc.player.connection.send(new ServerboundMovePlayerPacket.Pos(x, y + 0.05D, z, false, false));

@@ -22,7 +22,8 @@ public abstract class CameraFreecamMixin {
     private void zenith$applyFreecam(DeltaTracker deltaTracker, CallbackInfo ci) {
         if (!FreecamController.active()) return;
         detached = true;
-        setPosition(FreecamController.position());
+        float partialTick = deltaTracker.getGameTimeDeltaPartialTick(true);
+        setPosition(FreecamController.position(partialTick));
         setRotation(FreecamController.yaw(), FreecamController.pitch());
     }
 

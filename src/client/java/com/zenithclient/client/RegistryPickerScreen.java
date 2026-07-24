@@ -66,14 +66,16 @@ public final class RegistryPickerScreen extends Screen {
         g.fill(left + 18, top + 60, left + 138, top + 62, accent);
 
         g.text(font, titleText().toUpperCase(Locale.ROOT), left + 18, top + 14, 0xFFFFFFFF, true);
-        g.text(font, selected.size() + " SELECTED", left + panelW - 102, top + 14, accent, true);
+        String countText = selected.size() + " / " + entries.size() + " SELECTED";
+        g.text(font, countText, left + panelW - font.width(countText) - 18, top + 14, accent, true);
 
         int searchX = left + 18;
         int searchY = top + 35;
         int searchW = panelW - 36;
         g.fill(searchX, searchY, searchX + searchW, searchY + 20, 0xFF15181D);
         frame(g, searchX, searchY, searchW, 20, search.isEmpty() ? 0xFF343941 : accent);
-        String shownSearch = search.isEmpty() ? "Search entities or blocks..." : search + "_";
+        String noun = (mode == Mode.ENTITY_ESP || mode == Mode.KILL_AURA) ? "entities" : "blocks";
+        String shownSearch = search.isEmpty() ? "Search all loaded " + noun + "..." : search + "_";
         g.text(font, shownSearch, searchX + 8, searchY + 7,
                 search.isEmpty() ? 0xFF737A84 : 0xFFFFFFFF, false);
 
@@ -113,7 +115,7 @@ public final class RegistryPickerScreen extends Screen {
         int buttonY = top + panelH - 34;
         drawButton(g, mouseX, mouseY, Action.CLEAR, left + 18, buttonY, 84, 21, "CLEAR", accent);
         drawButton(g, mouseX, mouseY, Action.SELECT_VISIBLE, left + 110, buttonY, 132, 21,
-                "SELECT MATCHES", accent);
+                "SELECT SEARCH", accent);
         drawButton(g, mouseX, mouseY, Action.DONE, left + panelW - 96, buttonY, 78, 21,
                 "DONE", accent);
 
