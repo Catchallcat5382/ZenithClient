@@ -5,12 +5,13 @@ import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.phys.Vec3;
 
-/** Detached camera state. The real player stays at the activation point. */
+/** Detached spectator-style camera state. */
 public final class FreecamController {
     private static boolean active;
     private static Object playerReference;
     private static double x, y, z;
     private static double previousX, previousY, previousZ;
+    private static double velocityX, velocityY, velocityZ;
     private static float yaw, pitch;
     private static float previousYaw, previousPitch;
     private static double anchorX, anchorY, anchorZ;
@@ -24,51 +25,76 @@ public final class FreecamController {
             deactivate();
             return;
         }
+
         if (!active || playerReference != mc.player) activate(mc);
         if (mc.options.getCameraType() != CameraType.FIRST_PERSON) {
             mc.options.setCameraType(CameraType.FIRST_PERSON);
         }
 
-        // Mouse input updates the player rotation during the normal client tick.
-        // Capture only that delta for the detached camera, then restore the player.
-        float observedYaw = mc.player.getYRot();
-        float observedPitch = mc.player.getXRot();
-        previousYaw = yaw;
-        previousPitch = pitch;
-        yaw = wrapDegrees(yaw + wrapDegrees(observedYaw - anchorYaw));
-        pitch = Math.max(-90.0F, Math.min(90.0F, pitch + observedPitch - anchorPitch));
+        captureLook(mc);
 
-        double forward = (mc.options.keyUp.isDown() ? 1.0 : 0.0)
-                - (mc.options.keyDown.isDown() ? 1.0 : 0.0);
-        double strafe = (mc.options.keyRight.isDown() ? 1.0 : 0.0)
-                - (mc.options.keyLeft.isDown() ? 1.0 : 0.0);
-        double vertical = (mc.options.keyJump.isDown() ? 1.0 : 0.0)
-                - (mc.options.keyShift.isDown() ? 1.0 : 0.0);
+        double forward = (mc.options.keyUp.isDown() ? 1.0D : 0.0D)
+                - (mc.options.keyDown.isDown() ? 1.0D : 0.0D);
+        double strafe = (mc.options.keyRight.isDown() ? 1.0D : 0.0D)
+                - (mc.options.keyLeft.isDown() ? 1.0D : 0.0D);
+        double vertical = (mc.options.keyJump.isDown() ? 1.0D : 0.0D)
+                - (mc.options.keyShift.isDown() ? 1.0D : 0.0D);
 
         double horizontalLength = Math.hypot(forward, strafe);
-        if (horizontalLength > 1.0) {
+        if (horizontalLength > 1.0D) {
             forward /= horizontalLength;
             strafe /= horizontalLength;
         }
+
+        double baseSpeed = Math.max(0.1D, Math.min(10.0D, configuredSpeed));
+        double targetSpeed = baseSpeed
+                * (mc.options.keySprint.isDown() ? 0.95D : 0.45D);
+
+        double radians = Math.toRadians(yaw);
+        double sin = Math.sin(radians);
+        double cos = Math.cos(radians);
+
+        double wantedX = (-sin * forward - cos * strafe) * targetSpeed;
+        double wantedZ = ( cos * forward - sin * strafe) * targetSpeed;
+        double wantedY = vertical * targetSpeed;
+
+        double acceleration = 0.48D;
+        velocityX += (wantedX - velocityX) * acceleration;
+        velocityY += (wantedY - velocityY) * acceleration;
+        velocityZ += (wantedZ - velocityZ) * acceleration;
+
+        if (forward == 0.0D && strafe == 0.0D) {
+            velocityX *= 0.58D;
+            velocityZ *= 0.58D;
+        }
+        if (vertical == 0.0D) velocityY *= 0.58D;
+
+        if (Math.abs(velocityX) < 0.0001D) velocityX = 0.0D;
+        if (Math.abs(velocityY) < 0.0001D) velocityY = 0.0D;
+        if (Math.abs(velocityZ) < 0.0001D) velocityZ = 0.0D;
 
         previousX = x;
         previousY = y;
         previousZ = z;
 
-        double baseSpeed = Math.max(0.1, Math.min(10.0, configuredSpeed));
-        double speed = baseSpeed * (mc.options.keySprint.isDown() ? 1.0 : 0.5);
-        double radians = Math.toRadians(yaw);
-        double sin = Math.sin(radians);
-        double cos = Math.cos(radians);
-
-        // Same orientation as vanilla movement: W follows the view and D moves
-        // to the camera's right instead of being inverted.
-        x += (-sin * forward - cos * strafe) * speed;
-        z += ( cos * forward - sin * strafe) * speed;
-        y += vertical * speed;
+        x += velocityX;
+        y += velocityY;
+        z += velocityZ;
 
         holdPlayer(mc);
         FreecamVisibility.tick(mc, true, x, z);
+    }
+
+    private static void captureLook(Minecraft mc) {
+        float observedYaw = mc.player.getYRot();
+        float observedPitch = mc.player.getXRot();
+        float deltaYaw = wrapDegrees(observedYaw - anchorYaw);
+        float deltaPitch = observedPitch - anchorPitch;
+
+        previousYaw = yaw;
+        previousPitch = pitch;
+        yaw = wrapDegrees(yaw + deltaYaw);
+        pitch = Math.max(-90.0F, Math.min(90.0F, pitch + deltaPitch));
     }
 
     private static void activate(Minecraft mc) {
@@ -76,24 +102,30 @@ public final class FreecamController {
         playerReference = mc.player;
         previousCameraType = mc.options.getCameraType();
         mc.options.setCameraType(CameraType.FIRST_PERSON);
+
         Vec3 camera = mc.player.getEyePosition();
         x = previousX = camera.x;
         y = previousY = camera.y;
         z = previousZ = camera.z;
+        velocityX = velocityY = velocityZ = 0.0D;
+
         yaw = previousYaw = anchorYaw = mc.player.getYRot();
         pitch = previousPitch = anchorPitch = mc.player.getXRot();
+
         anchorX = mc.player.getX();
         anchorY = mc.player.getY();
         anchorZ = mc.player.getZ();
+
         holdPlayer(mc);
         ZenithClient.refreshWorldRenderer();
+        FreecamVisibility.resetForActivation(mc, x, z);
     }
 
     private static void holdPlayer(Minecraft mc) {
         mc.player.setPos(anchorX, anchorY, anchorZ);
         mc.player.setYRot(anchorYaw);
         mc.player.setXRot(anchorPitch);
-        mc.player.setDeltaMovement(0.0, 0.0, 0.0);
+        mc.player.setDeltaMovement(0.0D, 0.0D, 0.0D);
         mc.player.fallDistance = 0.0F;
     }
 
@@ -103,25 +135,23 @@ public final class FreecamController {
         Minecraft mc = Minecraft.getInstance();
         active = false;
         playerReference = null;
+        velocityX = velocityY = velocityZ = 0.0D;
 
         if (previousCameraType != null) {
             mc.options.setCameraType(previousCameraType);
             previousCameraType = null;
         }
 
-        // Rebuild the normal occlusion graph after leaving Freecam.
-        if (mc.level != null) {
-            FreecamVisibility.tick(mc, false,
-                    mc.player == null ? anchorX : mc.player.getX(),
-                    mc.player == null ? anchorZ : mc.player.getZ());
-            ZenithClient.refreshWorldRenderer();
-        }
+        FreecamVisibility.resetAfterDeactivation(mc);
+        if (mc.level != null) ZenithClient.refreshWorldRenderer();
     }
 
-    public static boolean active() { return active; }
+    public static boolean active() {
+        return active;
+    }
 
     public static Vec3 position(float partialTick) {
-        double t = Math.max(0.0, Math.min(1.0, partialTick));
+        double t = Math.max(0.0D, Math.min(1.0D, partialTick));
         return new Vec3(
                 previousX + (x - previousX) * t,
                 previousY + (y - previousY) * t,

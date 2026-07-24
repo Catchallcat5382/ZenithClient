@@ -32,7 +32,7 @@ public final class ZenithScreen extends Screen {
         ITEM_ESP, PROJECTILE_ESP, BLOCK_OUTLINES, STORAGE_ESP,
         BOW_TRAJECTORY, XRAY, NO_BLINDNESS, NO_FIRE_OVERLAY,
         FLIGHT, SPEED, AUTO_SPRINT, NO_SLOW, NO_STUN, NO_FALL, AIR_JUMP, FREECAM,
-        CRITICALS, AUTO_TOTEM, ATTRIBUTE_SWAP, EXP_THROWER,
+        CRITICALS, AUTO_TOTEM, ATTRIBUTE_SWAP, BREACH_SWAP, EXP_THROWER,
         KILL_AURA, REACH, INFINITE_REACH, MACE_KILL,
         FULLBRIGHT, FPS, COORDINATES
     }
@@ -393,6 +393,11 @@ public final class ZenithScreen extends Screen {
     }
 
     private void openSettings(Module m) {
+        if (minecraft != null && m == Module.BREACH_SWAP) {
+            minecraft.setScreenAndShow(CombatUtilitySettingsScreen.of(
+                    this, CombatUtilitySettingsScreen.Type.BREACH_SWAP));
+            return;
+        }
         if (minecraft != null && m == Module.EXP_THROWER) {
             minecraft.setScreenAndShow(CombatUtilitySettingsScreen.of(
                     this, CombatUtilitySettingsScreen.Type.EXP_THROWER));
@@ -465,6 +470,7 @@ public final class ZenithScreen extends Screen {
             case CRITICALS -> config.criticals = !config.criticals;
             case AUTO_TOTEM -> config.autoTotem = !config.autoTotem;
             case ATTRIBUTE_SWAP -> config.attributeSwap = !config.attributeSwap;
+            case BREACH_SWAP -> CombatUtilityState.toggleBreachSwap();
             case EXP_THROWER -> CombatUtilityState.toggleExpThrower();
             case KILL_AURA -> config.killAura = !config.killAura;
             case REACH -> config.reach = !config.reach;
@@ -506,6 +512,7 @@ public final class ZenithScreen extends Screen {
             case CRITICALS -> config.criticals;
             case AUTO_TOTEM -> config.autoTotem;
             case ATTRIBUTE_SWAP -> config.attributeSwap;
+            case BREACH_SWAP -> CombatUtilityState.breachSwapEnabled();
             case EXP_THROWER -> CombatUtilityState.expThrowerEnabled();
             case KILL_AURA -> config.killAura;
             case REACH -> config.reach;
@@ -530,7 +537,7 @@ public final class ZenithScreen extends Screen {
                     Module.XRAY, Module.NO_BLINDNESS, Module.NO_FIRE_OVERLAY);
             case COMBAT -> List.of(
                     Module.CRITICALS, Module.AUTO_TOTEM, Module.ATTRIBUTE_SWAP,
-                    Module.EXP_THROWER,
+                    Module.BREACH_SWAP, Module.EXP_THROWER,
                     Module.KILL_AURA, Module.REACH, Module.INFINITE_REACH, Module.MACE_KILL);
             case MOVEMENT -> List.of(
                     Module.FLIGHT, Module.SPEED, Module.AUTO_SPRINT, Module.NO_SLOW,
@@ -563,6 +570,7 @@ public final class ZenithScreen extends Screen {
             case CRITICALS -> "Criticals";
             case AUTO_TOTEM -> "Auto Totem";
             case ATTRIBUTE_SWAP -> "Attribute Swap";
+            case BREACH_SWAP -> "Breach Swap";
             case EXP_THROWER -> "EXP Thrower";
             case KILL_AURA -> "Kill Aura";
             case REACH -> "Reach";

@@ -1,5 +1,6 @@
 package com.zenithclient.client.mixin;
 
+import com.zenithclient.client.modules.BreachSwapController;
 import com.zenithclient.client.modules.CombatUtilityState;
 import com.zenithclient.client.modules.ExpThrowerController;
 import net.minecraft.client.Minecraft;
@@ -14,6 +15,7 @@ public abstract class CombatUtilityTickMixin {
     private void zenith$tickCombatUtilities(CallbackInfo ci) {
         Minecraft mc = (Minecraft) (Object) this;
         CombatUtilityState.handleKeybinds(mc);
+        BreachSwapController.tick();
         ExpThrowerController.tick(mc);
     }
 }

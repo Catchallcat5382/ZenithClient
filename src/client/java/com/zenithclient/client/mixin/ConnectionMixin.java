@@ -1,6 +1,7 @@
 package com.zenithclient.client.mixin;
 
 import com.zenithclient.client.ZenithClient;
+import com.zenithclient.client.modules.BreachSwapController;
 import com.zenithclient.client.modules.FreecamController;
 import io.netty.channel.ChannelFutureListener;
 import net.minecraft.client.Minecraft;
@@ -32,12 +33,14 @@ public abstract class ConnectionMixin {
             return;
         }
 
+        if (BreachSwapController.isSpoofing()
+                && packet instanceof ServerboundMovePlayerPacket) {
+            return;
+        }
+
         Minecraft mc = Minecraft.getInstance();
         var config = ZenithClient.getConfig();
 
-        // No Fall normally reports grounded during a descent. Mace smash needs
-        // the genuine falling sequence, so do not rewrite those movement
-        // packets while Criticals is active and a mace is being held.
         if (packet instanceof ServerboundMovePlayerPacket
                 && config.noFall
                 && config.criticals

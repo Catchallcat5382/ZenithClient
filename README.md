@@ -74,13 +74,15 @@ Successful JAR files are placed in `minecraft_versions/`, `releases/v<version>/`
 
 ## Latest update
 
-- Removed the standalone Breach Swap module and its Click GUI button.
-- Removed Zoom, Clear Weather, Daylight, No Hurt Camera, and No Portal Overlay.
-- Criticals no longer sends its normal tiny movement sequence during mace attacks.
-- Mace smash now uses genuine falling movement when Criticals is active.
-- No Fall stops rewriting descent packets while Criticals is active and a mace is held, preventing it from cancelling the normal mace-smash state.
-- EXP Thrower no longer forces or locks the camera.
-- EXP Thrower uses the player's real current view direction, with configurable delay, swap-back behavior, offhand support, hotbar scanning, and a keybind.
+- Criticals with a mace now uses one fixed four-block mace-smash sequence.
+- Breach Swap can select a Breach-enchanted mace and uses the same fixed four-block sequence before the normal attack.
+- Removed the configurable-height conflict from the Criticals mace path.
+- No Fall leaves the fixed mace sequence unchanged.
+- Generic Attribute Swap no longer overrides an active Breach mace selection.
+- EXP Thrower remains camera-free and uses the current view direction.
+- Freecam movement now uses acceleration, stronger stopping drag, corrected camera-relative movement, and smooth interpolation.
+- Freecam progressively rebuilds the complete loaded render radius around each camera chunk instead of only a small ring.
+- Loaded sections are periodically requeued for better Sodium and Iris consistency.
 - Hostile ESP, Passive ESP, Living ESP, Storage ESP, dynamic entity discovery, X-Ray lighting, and the existing UI remain included.
 - Failed builds continue restoring the previous project version automatically.
 

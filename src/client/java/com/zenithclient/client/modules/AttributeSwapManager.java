@@ -23,7 +23,7 @@ public final class AttributeSwapManager {
         ZenithConfig config = ZenithClient.getConfig();
 
         if (!config.attributeSwap || mc.player == null || mc.player.connection == null
-                || originalSlot >= 0) {
+                || originalSlot >= 0 || BreachSwapController.isActive()) {
             return;
         }
 

@@ -21,14 +21,27 @@ public abstract class CameraFreecamMixin {
     @Inject(method = "update", at = @At("TAIL"), require = 0)
     private void zenith$applyFreecam(DeltaTracker deltaTracker, CallbackInfo ci) {
         if (!FreecamController.active()) return;
+
         detached = true;
-        float partialTick = deltaTracker.getGameTimeDeltaPartialTick(true);
+        float partialTick =
+                deltaTracker.getGameTimeDeltaPartialTick(true);
+
         setPosition(FreecamController.position(partialTick));
-        setRotation(FreecamController.yaw(partialTick), FreecamController.pitch(partialTick));
+        setRotation(
+                FreecamController.yaw(partialTick),
+                FreecamController.pitch(partialTick)
+        );
     }
 
-    @Inject(method = "getFluidInCamera", at = @At("HEAD"), cancellable = true, require = 0)
-    private void zenith$freecamNoFluidFog(CallbackInfoReturnable<FogType> cir) {
+    @Inject(
+            method = "getFluidInCamera",
+            at = @At("HEAD"),
+            cancellable = true,
+            require = 0
+    )
+    private void zenith$freecamNoFluidFog(
+            CallbackInfoReturnable<FogType> cir
+    ) {
         if (FreecamController.active()) cir.setReturnValue(FogType.NONE);
     }
 }

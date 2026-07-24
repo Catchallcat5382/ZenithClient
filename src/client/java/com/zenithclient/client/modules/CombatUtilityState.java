@@ -9,21 +9,52 @@ import org.lwjgl.glfw.GLFW;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/** Persistent settings and key handling for EXP Thrower. */
+/** Persistent settings and key handling for Breach Swap and EXP Thrower. */
 public final class CombatUtilityState {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path PATH = FabricLoader.getInstance().getConfigDir()
             .resolve("zenithclient-combat-utilities.json");
 
     private static State state = load();
+    private static boolean breachKeyWasDown;
     private static boolean expKeyWasDown;
 
     private CombatUtilityState() { }
+
+    public static boolean breachSwapEnabled() { return state.breachSwapEnabled; }
+    public static boolean breachOnlyArmored() { return state.breachOnlyArmored; }
+    public static int breachRestoreDelay() { return state.breachRestoreDelay; }
+    public static int breachKey() { return state.breachKey; }
 
     public static boolean expThrowerEnabled() { return state.expThrowerEnabled; }
     public static int expDelayTicks() { return state.expDelayTicks; }
     public static boolean expSwapBack() { return state.expSwapBack; }
     public static int expKey() { return state.expKey; }
+
+    public static void setBreachSwapEnabled(boolean value) {
+        state.breachSwapEnabled = value;
+        if (!value) BreachSwapController.reset();
+        save();
+    }
+
+    public static void toggleBreachSwap() {
+        setBreachSwapEnabled(!state.breachSwapEnabled);
+    }
+
+    public static void setBreachOnlyArmored(boolean value) {
+        state.breachOnlyArmored = value;
+        save();
+    }
+
+    public static void setBreachRestoreDelay(int value) {
+        state.breachRestoreDelay = clamp(value, 0, 20);
+        save();
+    }
+
+    public static void setBreachKey(int key) {
+        state.breachKey = key;
+        save();
+    }
 
     public static void setExpThrowerEnabled(boolean value) {
         state.expThrowerEnabled = value;
@@ -53,14 +84,20 @@ public final class CombatUtilityState {
     public static void handleKeybinds(Minecraft mc) {
         if (mc.player == null || mc.level == null
                 || MinecraftScreenCompat.hasOpenScreen(mc)) {
+            breachKeyWasDown = false;
             expKeyWasDown = false;
             return;
         }
 
         long window = mc.getWindow().handle();
+
+        boolean breachDown = state.breachKey >= 0
+                && GLFW.glfwGetKey(window, state.breachKey) == GLFW.GLFW_PRESS;
+        if (breachDown && !breachKeyWasDown) toggleBreachSwap();
+        breachKeyWasDown = breachDown;
+
         boolean expDown = state.expKey >= 0
                 && GLFW.glfwGetKey(window, state.expKey) == GLFW.GLFW_PRESS;
-
         if (expDown && !expKeyWasDown) toggleExpThrower();
         expKeyWasDown = expDown;
     }
@@ -86,7 +123,7 @@ public final class CombatUtilityState {
             Files.createDirectories(PATH.getParent());
             Files.writeString(PATH, GSON.toJson(state));
         } catch (Exception exception) {
-            System.err.println("ZenithClient could not save EXP Thrower settings: "
+            System.err.println("ZenithClient could not save combat utility settings: "
                     + exception.getMessage());
         }
     }
@@ -96,13 +133,20 @@ public final class CombatUtilityState {
     }
 
     private static final class State {
+        boolean breachSwapEnabled;
+        boolean breachOnlyArmored = true;
+        int breachRestoreDelay = 1;
+        int breachKey = -1;
+
         boolean expThrowerEnabled;
         int expDelayTicks = 1;
         boolean expSwapBack = true;
         int expKey = -1;
 
         void sanitize() {
+            breachRestoreDelay = clamp(breachRestoreDelay, 0, 20);
             expDelayTicks = clamp(expDelayTicks, 1, 20);
+            if (breachKey < -1) breachKey = -1;
             if (expKey < -1) expKey = -1;
         }
     }
