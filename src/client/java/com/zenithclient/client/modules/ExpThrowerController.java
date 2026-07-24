@@ -7,15 +7,13 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 /**
- * Automatically uses experience bottles found in the hotbar or offhand.
+ * Automatically uses experience bottles found in the offhand or hotbar.
  *
- * This follows Minecraft's normal use-item path. It does not create inventory
- * items, click hidden slots, or send custom/fabricated packets.
+ * The camera is never forced or locked. Bottles use the player's real current
+ * view direction through Minecraft's normal use-item path.
  */
 public final class ExpThrowerController {
     private static int cooldown;
-    private static boolean pitchSaved;
-    private static float savedPitch;
 
     private ExpThrowerController() { }
 
@@ -31,19 +29,8 @@ public final class ExpThrowerController {
 
         ThrowSource source = findSource(mc);
         if (source == null) {
-            restorePitch(mc);
             cooldown = 0;
             return;
-        }
-
-        if (CombatUtilityState.expLookDown()) {
-            if (!pitchSaved) {
-                savedPitch = mc.player.getXRot();
-                pitchSaved = true;
-            }
-            mc.player.setXRot(90.0F);
-        } else {
-            restorePitch(mc);
         }
 
         if (cooldown > 0) {
@@ -70,8 +57,6 @@ public final class ExpThrowerController {
     }
 
     public static void onDisabled() {
-        Minecraft mc = Minecraft.getInstance();
-        restorePitch(mc);
         cooldown = 0;
     }
 
@@ -93,12 +78,6 @@ public final class ExpThrowerController {
         }
 
         return null;
-    }
-
-    private static void restorePitch(Minecraft mc) {
-        if (!pitchSaved) return;
-        if (mc.player != null) mc.player.setXRot(savedPitch);
-        pitchSaved = false;
     }
 
     private record ThrowSource(InteractionHand hand, int slot) { }

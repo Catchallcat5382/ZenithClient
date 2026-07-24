@@ -2,7 +2,6 @@ package com.zenithclient.client;
 
 import com.zenithclient.client.modules.CombatUtilityState;
 import com.zenithclient.client.modules.EspPresetState;
-import com.zenithclient.client.modules.VisualExtrasState;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -32,9 +31,8 @@ public final class ZenithScreen extends Screen {
         PLAYER_ESP, ENTITY_OUTLINES, HOSTILE_ESP, PASSIVE_ESP, LIVING_ESP,
         ITEM_ESP, PROJECTILE_ESP, BLOCK_OUTLINES, STORAGE_ESP,
         BOW_TRAJECTORY, XRAY, NO_BLINDNESS, NO_FIRE_OVERLAY,
-        ZOOM, CLEAR_WEATHER, DAYLIGHT, NO_HURT_CAMERA, NO_PORTAL_OVERLAY,
         FLIGHT, SPEED, AUTO_SPRINT, NO_SLOW, NO_STUN, NO_FALL, AIR_JUMP, FREECAM,
-        CRITICALS, AUTO_TOTEM, ATTRIBUTE_SWAP, BREACH_SWAP, EXP_THROWER,
+        CRITICALS, AUTO_TOTEM, ATTRIBUTE_SWAP, EXP_THROWER,
         KILL_AURA, REACH, INFINITE_REACH, MACE_KILL,
         FULLBRIGHT, FPS, COORDINATES
     }
@@ -395,11 +393,6 @@ public final class ZenithScreen extends Screen {
     }
 
     private void openSettings(Module m) {
-        if (minecraft != null && m == Module.BREACH_SWAP) {
-            minecraft.setScreenAndShow(CombatUtilitySettingsScreen.of(
-                    this, CombatUtilitySettingsScreen.Type.BREACH_SWAP));
-            return;
-        }
         if (minecraft != null && m == Module.EXP_THROWER) {
             minecraft.setScreenAndShow(CombatUtilitySettingsScreen.of(
                     this, CombatUtilitySettingsScreen.Type.EXP_THROWER));
@@ -464,11 +457,6 @@ public final class ZenithScreen extends Screen {
             case XRAY -> config.xray = !config.xray;
             case NO_BLINDNESS -> config.noBlindness = !config.noBlindness;
             case NO_FIRE_OVERLAY -> config.noFireOverlay = !config.noFireOverlay;
-            case ZOOM -> VisualExtrasState.toggleZoom();
-            case CLEAR_WEATHER -> VisualExtrasState.toggleClearWeather();
-            case DAYLIGHT -> VisualExtrasState.toggleDaylight();
-            case NO_HURT_CAMERA -> VisualExtrasState.toggleNoHurtCamera();
-            case NO_PORTAL_OVERLAY -> VisualExtrasState.toggleNoPortalOverlay();
             case FLIGHT -> config.flight = !config.flight;
             case AUTO_SPRINT -> config.autoSprint = !config.autoSprint;
             case NO_SLOW -> config.noSlow = !config.noSlow;
@@ -477,7 +465,6 @@ public final class ZenithScreen extends Screen {
             case CRITICALS -> config.criticals = !config.criticals;
             case AUTO_TOTEM -> config.autoTotem = !config.autoTotem;
             case ATTRIBUTE_SWAP -> config.attributeSwap = !config.attributeSwap;
-            case BREACH_SWAP -> CombatUtilityState.toggleBreachSwap();
             case EXP_THROWER -> CombatUtilityState.toggleExpThrower();
             case KILL_AURA -> config.killAura = !config.killAura;
             case REACH -> config.reach = !config.reach;
@@ -511,11 +498,6 @@ public final class ZenithScreen extends Screen {
             case XRAY -> config.xray;
             case NO_BLINDNESS -> config.noBlindness;
             case NO_FIRE_OVERLAY -> config.noFireOverlay;
-            case ZOOM -> VisualExtrasState.zoom();
-            case CLEAR_WEATHER -> VisualExtrasState.clearWeather();
-            case DAYLIGHT -> VisualExtrasState.daylight();
-            case NO_HURT_CAMERA -> VisualExtrasState.noHurtCamera();
-            case NO_PORTAL_OVERLAY -> VisualExtrasState.noPortalOverlay();
             case FLIGHT -> config.flight;
             case AUTO_SPRINT -> config.autoSprint;
             case NO_SLOW -> config.noSlow;
@@ -524,7 +506,6 @@ public final class ZenithScreen extends Screen {
             case CRITICALS -> config.criticals;
             case AUTO_TOTEM -> config.autoTotem;
             case ATTRIBUTE_SWAP -> config.attributeSwap;
-            case BREACH_SWAP -> CombatUtilityState.breachSwapEnabled();
             case EXP_THROWER -> CombatUtilityState.expThrowerEnabled();
             case KILL_AURA -> config.killAura;
             case REACH -> config.reach;
@@ -546,12 +527,10 @@ public final class ZenithScreen extends Screen {
                     Module.HOSTILE_ESP, Module.PASSIVE_ESP, Module.LIVING_ESP,
                     Module.ITEM_ESP, Module.PROJECTILE_ESP,
                     Module.BLOCK_OUTLINES, Module.STORAGE_ESP, Module.BOW_TRAJECTORY,
-                    Module.XRAY, Module.NO_BLINDNESS, Module.NO_FIRE_OVERLAY,
-                    Module.ZOOM, Module.CLEAR_WEATHER, Module.DAYLIGHT,
-                    Module.NO_HURT_CAMERA, Module.NO_PORTAL_OVERLAY);
+                    Module.XRAY, Module.NO_BLINDNESS, Module.NO_FIRE_OVERLAY);
             case COMBAT -> List.of(
                     Module.CRITICALS, Module.AUTO_TOTEM, Module.ATTRIBUTE_SWAP,
-                    Module.BREACH_SWAP, Module.EXP_THROWER,
+                    Module.EXP_THROWER,
                     Module.KILL_AURA, Module.REACH, Module.INFINITE_REACH, Module.MACE_KILL);
             case MOVEMENT -> List.of(
                     Module.FLIGHT, Module.SPEED, Module.AUTO_SPRINT, Module.NO_SLOW,
@@ -576,11 +555,6 @@ public final class ZenithScreen extends Screen {
             case XRAY -> "X-Ray";
             case NO_BLINDNESS -> "No Blindness";
             case NO_FIRE_OVERLAY -> "No Fire Overlay";
-            case ZOOM -> "Zoom";
-            case CLEAR_WEATHER -> "Clear Weather";
-            case DAYLIGHT -> "Daylight";
-            case NO_HURT_CAMERA -> "No Hurt Camera";
-            case NO_PORTAL_OVERLAY -> "No Portal Overlay";
             case FLIGHT -> "Flight";
             case AUTO_SPRINT -> "Auto Sprint";
             case NO_SLOW -> "No Slow";
@@ -589,7 +563,6 @@ public final class ZenithScreen extends Screen {
             case CRITICALS -> "Criticals";
             case AUTO_TOTEM -> "Auto Totem";
             case ATTRIBUTE_SWAP -> "Attribute Swap";
-            case BREACH_SWAP -> "Breach Swap";
             case EXP_THROWER -> "EXP Thrower";
             case KILL_AURA -> "Kill Aura";
             case REACH -> "Reach";

@@ -74,9 +74,14 @@ Successful JAR files are placed in `minecraft_versions/`, `releases/v<version>/`
 
 ## Latest update
 
-- Fixed the Minecraft 26.2 compilation failure in Breach Swap and EXP Thrower.
-- Replaced direct access to the removed source-level `Minecraft.screen` field with a mapping-compatible screen check.
-- Breach Swap, EXP Thrower, Hostile ESP, Passive ESP, Living ESP, and Storage ESP remain included.
+- Removed the standalone Breach Swap module and its Click GUI button.
+- Removed Zoom, Clear Weather, Daylight, No Hurt Camera, and No Portal Overlay.
+- Criticals no longer sends its normal tiny movement sequence during mace attacks.
+- Mace smash now uses genuine falling movement when Criticals is active.
+- No Fall stops rewriting descent packets while Criticals is active and a mace is held, preventing it from cancelling the normal mace-smash state.
+- EXP Thrower no longer forces or locks the camera.
+- EXP Thrower uses the player's real current view direction, with configurable delay, swap-back behavior, offhand support, hotbar scanning, and a keybind.
+- Hostile ESP, Passive ESP, Living ESP, Storage ESP, dynamic entity discovery, X-Ray lighting, and the existing UI remain included.
 - Failed builds continue restoring the previous project version automatically.
 
 ---
