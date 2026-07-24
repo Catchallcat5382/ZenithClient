@@ -74,13 +74,11 @@ Successful JAR files are placed in `minecraft_versions/`, `releases/v<version>/`
 
 ## Latest update
 
-- Entity target selection now refreshes while open and merges the client entity registry, modded registrations, saved IDs, and entity types currently present in the active world/server.
-- Current-world entity types are marked LIVE in the selector.
-- Freecam now gradually rebuilds loaded chunk visibility while active, allowing substantially more already-loaded geometry behind and around the detached camera to appear without one large rebuild freeze.
-- Freecam still cannot display chunks the server has never sent to the anchored player.
-- Added client-only visual toggles for Zoom, Clear Weather, Daylight, No Hurt Camera, and No Portal Overlay.
-- Kept the fixed-size Z hover mark and right-only banner extension.
-- Existing X-Ray lighting, ESP cleanup, scrolling module tabs, complete registry search, padded Mod Menu artwork, and failed-build version rollback remain included.
+- Fixed the Minecraft 26.2 compilation failure caused by the missing `VisualExtrasState` import in the Click GUI.
+- Restored access to Zoom, Clear Weather, Daylight, No Hurt Camera, and No Portal Overlay from the Visuals tab.
+- Entity selection still merges built-in, modded, saved, and current-world entity types.
+- Freecam still uses progressive loaded-chunk visibility rebuilding and detached-camera occlusion handling.
+- Failed builds continue restoring the previous project version automatically.
 
 ---
 

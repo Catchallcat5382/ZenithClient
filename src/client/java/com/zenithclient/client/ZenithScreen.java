@@ -1,5 +1,6 @@
 package com.zenithclient.client;
 
+import com.zenithclient.client.modules.VisualExtrasState;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
