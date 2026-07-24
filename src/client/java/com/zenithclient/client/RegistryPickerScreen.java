@@ -5,6 +5,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
+import com.zenithclient.client.modules.DynamicEntityCatalog;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
@@ -29,19 +30,21 @@ public final class RegistryPickerScreen extends Screen {
     private final Screen parent;
     private final ZenithConfig config;
     private final Mode mode;
-    private final List<String> entries;
+    private final List<String> entries = new ArrayList<>();
+    private final Set<String> liveEntries = new LinkedHashSet<>();
     private final Set<String> selected = new LinkedHashSet<>();
     private final List<Row> rows = new ArrayList<>();
     private String search = "";
     private int scroll;
     private int maxScroll;
+    private long nextRefreshMs;
 
     private RegistryPickerScreen(Screen parent, ZenithConfig config, Mode mode) {
         super(Component.literal("Registry Picker"));
         this.parent = parent;
         this.config = config;
         this.mode = mode;
-        this.entries = loadEntries(mode);
+        refreshEntries(true);
         readSelected();
     }
 
@@ -51,6 +54,7 @@ public final class RegistryPickerScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float tickDelta) {
+        refreshEntries(false);
         int margin = width < 620 || height < 390 ? 7 : 14;
         int panelW = Math.max(1, Math.min(680, width - margin * 2));
         int panelH = Math.max(1, Math.min(480, height - margin * 2));
@@ -66,7 +70,8 @@ public final class RegistryPickerScreen extends Screen {
         g.fill(left + 18, top + 61, left + Math.min(panelW - 18, 158), top + 63, accent);
 
         g.text(font, titleText().toUpperCase(Locale.ROOT), left + 18, top + 14, 0xFFFFFFFF, true);
-        String countText = selected.size() + " SELECTED / " + entries.size() + " LOADED";
+        String countText = selected.size() + " SELECTED / " + entries.size()
+                + " AVAILABLE / " + liveEntries.size() + " LIVE";
         int countX = Math.max(left + 18, left + panelW - font.width(countText) - 18);
         g.text(font, countText, countX, top + 14, accent, true);
 
@@ -76,7 +81,9 @@ public final class RegistryPickerScreen extends Screen {
         g.fill(searchX, searchY, searchX + searchW, searchY + 20, 0xFF15181D);
         frame(g, searchX, searchY, searchW, 20, search.isEmpty() ? 0xFF343941 : accent);
         String noun = (mode == Mode.ENTITY_ESP || mode == Mode.KILL_AURA) ? "entities" : "blocks";
-        String shownSearch = search.isEmpty() ? "Search every loaded " + noun + "..." : search + "_";
+        String shownSearch = search.isEmpty()
+                ? "Search registry, mods and current-world " + noun + "..."
+                : search + "_";
         g.text(font, fit(shownSearch, searchW - 16), searchX + 8, searchY + 7,
                 search.isEmpty() ? 0xFF737A84 : 0xFFFFFFFF, false);
 
@@ -145,15 +152,18 @@ public final class RegistryPickerScreen extends Screen {
         }
 
         String path = id.contains(":") ? id.substring(id.indexOf(':') + 1) : id;
-        String badge = badge(path);
+        boolean live = liveEntries.contains(id);
+        String badge = live ? "LIVE" : badge(path);
         int badgeX = x + 25;
-        int badgeColor = 0xFF000000 | (id.hashCode() & 0x005F5F5F) | 0x00303030;
-        g.fill(badgeX, y + 3, badgeX + 18, y + 19, badgeColor);
-        frame(g, badgeX, y + 3, 18, 16, checked ? accent : 0xFF626873);
-        g.text(font, badge, badgeX + (18 - font.width(badge)) / 2, y + 7, 0xFFFFFFFF, true);
+        int badgeW = live ? 30 : 18;
+        int badgeColor = live ? 0xFF1D5A35
+                : 0xFF000000 | (id.hashCode() & 0x005F5F5F) | 0x00303030;
+        g.fill(badgeX, y + 3, badgeX + badgeW, y + 19, badgeColor);
+        frame(g, badgeX, y + 3, badgeW, 16, live ? 0xFF39D77A : checked ? accent : 0xFF626873);
+        g.text(font, badge, badgeX + (badgeW - font.width(badge)) / 2, y + 7, 0xFFFFFFFF, true);
 
-        String display = fit(id, Math.max(20, w - 53));
-        g.text(font, display, x + 49, y + 7,
+        String display = fit(id, Math.max(20, w - 57 - badgeW));
+        g.text(font, display, badgeX + badgeW + 7, y + 7,
                 checked || hover ? 0xFFFFFFFF : 0xFFB9BDC3, false);
         rows.add(new Row(Action.ENTRY, id, x, y, w, 22));
     }
@@ -282,15 +292,27 @@ public final class RegistryPickerScreen extends Screen {
         };
     }
 
-    private static List<String> loadEntries(Mode mode) {
-        List<String> values = new ArrayList<>();
+    private void refreshEntries(boolean force) {
+        long now = System.currentTimeMillis();
+        if (!force && now < nextRefreshMs) return;
+        nextRefreshMs = now + 1000L;
+
         if (mode == Mode.ENTITY_ESP || mode == Mode.KILL_AURA) {
-            BuiltInRegistries.ENTITY_TYPE.keySet().forEach(id -> values.add(id.toString().toLowerCase(Locale.ROOT)));
+            DynamicEntityCatalog.Snapshot snapshot =
+                    DynamicEntityCatalog.collect(currentValue());
+            entries.clear();
+            entries.addAll(snapshot.all());
+            liveEntries.clear();
+            liveEntries.addAll(snapshot.live());
         } else {
-            BuiltInRegistries.BLOCK.keySet().forEach(id -> values.add(id.toString().toLowerCase(Locale.ROOT)));
+            entries.clear();
+            BuiltInRegistries.BLOCK.keySet().forEach(id ->
+                    entries.add(id.toString().toLowerCase(Locale.ROOT)));
+            entries.sort(Comparator.naturalOrder());
+            liveEntries.clear();
         }
-        values.sort(Comparator.naturalOrder());
-        return values;
+
+        maxScroll = 0;
     }
 
     private static String badge(String path) {

@@ -74,12 +74,13 @@ Successful JAR files are placed in `minecraft_versions/`, `releases/v<version>/`
 
 ## Latest update
 
-- Freecam now disables chunk occlusion while active so loaded geometry behind the original player view remains renderable.
-- Freecam temporarily uses first-person camera rendering and restores the previous perspective when disabled.
-- Entering and leaving Freecam rebuilds chunk visibility to prevent missing walls and delayed geometry.
-- The compact Z logo no longer changes size or gets replaced during hover.
-- Hovering the Z now reveals only a matching ZenithClient extension toward the right.
-- X-Ray, ESP cleanup, complete registry selection, scrolling module tabs, padded Mod Menu artwork, and failed-build version rollback remain included from the previous updates.
+- Entity target selection now refreshes while open and merges the client entity registry, modded registrations, saved IDs, and entity types currently present in the active world/server.
+- Current-world entity types are marked LIVE in the selector.
+- Freecam now gradually rebuilds loaded chunk visibility while active, allowing substantially more already-loaded geometry behind and around the detached camera to appear without one large rebuild freeze.
+- Freecam still cannot display chunks the server has never sent to the anchored player.
+- Added client-only visual toggles for Zoom, Clear Weather, Daylight, No Hurt Camera, and No Portal Overlay.
+- Kept the fixed-size Z hover mark and right-only banner extension.
+- Existing X-Ray lighting, ESP cleanup, scrolling module tabs, complete registry search, padded Mod Menu artwork, and failed-build version rollback remain included.
 
 ---
 

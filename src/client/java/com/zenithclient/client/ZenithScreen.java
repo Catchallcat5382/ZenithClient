@@ -28,6 +28,7 @@ public final class ZenithScreen extends Screen {
     private enum Module {
         PLAYER_ESP, ENTITY_OUTLINES, ITEM_ESP, PROJECTILE_ESP, BLOCK_OUTLINES,
         BOW_TRAJECTORY, XRAY, NO_BLINDNESS, NO_FIRE_OVERLAY,
+        ZOOM, CLEAR_WEATHER, DAYLIGHT, NO_HURT_CAMERA, NO_PORTAL_OVERLAY,
         FLIGHT, SPEED, AUTO_SPRINT, NO_SLOW, NO_STUN, NO_FALL, AIR_JUMP, FREECAM,
         CRITICALS, AUTO_TOTEM, ATTRIBUTE_SWAP, KILL_AURA, REACH, INFINITE_REACH,
         MACE_KILL, FULLBRIGHT, FPS, COORDINATES
@@ -417,8 +418,11 @@ public final class ZenithScreen extends Screen {
             case FULLBRIGHT -> ModuleSettingsScreen.Type.FULLBRIGHT;
             case FPS -> ModuleSettingsScreen.Type.FPS;
             case COORDINATES -> ModuleSettingsScreen.Type.COORDINATES;
+            default -> null;
         };
-        if (minecraft != null) minecraft.setScreenAndShow(ModuleSettingsScreen.of(this, config, type));
+        if (type != null && minecraft != null) {
+            minecraft.setScreenAndShow(ModuleSettingsScreen.of(this, config, type));
+        }
     }
 
     private void toggle(Module m) {
@@ -433,6 +437,11 @@ public final class ZenithScreen extends Screen {
             case XRAY -> config.xray = !config.xray;
             case NO_BLINDNESS -> config.noBlindness = !config.noBlindness;
             case NO_FIRE_OVERLAY -> config.noFireOverlay = !config.noFireOverlay;
+            case ZOOM -> VisualExtrasState.toggleZoom();
+            case CLEAR_WEATHER -> VisualExtrasState.toggleClearWeather();
+            case DAYLIGHT -> VisualExtrasState.toggleDaylight();
+            case NO_HURT_CAMERA -> VisualExtrasState.toggleNoHurtCamera();
+            case NO_PORTAL_OVERLAY -> VisualExtrasState.toggleNoPortalOverlay();
             case FLIGHT -> config.flight = !config.flight;
             case AUTO_SPRINT -> config.autoSprint = !config.autoSprint;
             case NO_SLOW -> config.noSlow = !config.noSlow;
@@ -468,6 +477,11 @@ public final class ZenithScreen extends Screen {
             case XRAY -> config.xray;
             case NO_BLINDNESS -> config.noBlindness;
             case NO_FIRE_OVERLAY -> config.noFireOverlay;
+            case ZOOM -> VisualExtrasState.zoom();
+            case CLEAR_WEATHER -> VisualExtrasState.clearWeather();
+            case DAYLIGHT -> VisualExtrasState.daylight();
+            case NO_HURT_CAMERA -> VisualExtrasState.noHurtCamera();
+            case NO_PORTAL_OVERLAY -> VisualExtrasState.noPortalOverlay();
             case FLIGHT -> config.flight;
             case AUTO_SPRINT -> config.autoSprint;
             case NO_SLOW -> config.noSlow;
@@ -494,7 +508,9 @@ public final class ZenithScreen extends Screen {
             case VISUALS -> List.of(
                     Module.PLAYER_ESP, Module.ENTITY_OUTLINES, Module.ITEM_ESP,
                     Module.PROJECTILE_ESP, Module.BLOCK_OUTLINES, Module.BOW_TRAJECTORY,
-                    Module.XRAY, Module.NO_BLINDNESS, Module.NO_FIRE_OVERLAY);
+                    Module.XRAY, Module.NO_BLINDNESS, Module.NO_FIRE_OVERLAY,
+                    Module.ZOOM, Module.CLEAR_WEATHER, Module.DAYLIGHT,
+                    Module.NO_HURT_CAMERA, Module.NO_PORTAL_OVERLAY);
             case COMBAT -> List.of(
                     Module.CRITICALS, Module.AUTO_TOTEM, Module.ATTRIBUTE_SWAP,
                     Module.KILL_AURA, Module.REACH, Module.INFINITE_REACH, Module.MACE_KILL);
@@ -517,6 +533,11 @@ public final class ZenithScreen extends Screen {
             case XRAY -> "X-Ray";
             case NO_BLINDNESS -> "No Blindness";
             case NO_FIRE_OVERLAY -> "No Fire Overlay";
+            case ZOOM -> "Zoom";
+            case CLEAR_WEATHER -> "Clear Weather";
+            case DAYLIGHT -> "Daylight";
+            case NO_HURT_CAMERA -> "No Hurt Camera";
+            case NO_PORTAL_OVERLAY -> "No Portal Overlay";
             case FLIGHT -> "Flight";
             case AUTO_SPRINT -> "Auto Sprint";
             case NO_SLOW -> "No Slow";

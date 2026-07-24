@@ -68,6 +68,7 @@ public final class FreecamController {
         y += vertical * speed;
 
         holdPlayer(mc);
+        FreecamVisibility.tick(mc, true, x, z);
     }
 
     private static void activate(Minecraft mc) {
@@ -109,7 +110,12 @@ public final class FreecamController {
         }
 
         // Rebuild the normal occlusion graph after leaving Freecam.
-        if (mc.level != null) ZenithClient.refreshWorldRenderer();
+        if (mc.level != null) {
+            FreecamVisibility.tick(mc, false,
+                    mc.player == null ? anchorX : mc.player.getX(),
+                    mc.player == null ? anchorZ : mc.player.getZ());
+            ZenithClient.refreshWorldRenderer();
+        }
     }
 
     public static boolean active() { return active; }
