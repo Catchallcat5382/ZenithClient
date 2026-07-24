@@ -1,5 +1,6 @@
 package com.zenithclient.client.mixin;
 
+import com.zenithclient.client.modules.AttributeSwapManager;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -13,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class AttributeSwapMixin {
     @Inject(method = "attack", at = @At("HEAD"), require = 0)
     private void zenith$swapBeforeAttack(Player player, Entity target, CallbackInfo ci) {
-        AttributeSwapManager.beforeAttack(player);
+        AttributeSwapManager.beforeAttack();
     }
 
     @Inject(method = "attack", at = @At("TAIL"), require = 0)

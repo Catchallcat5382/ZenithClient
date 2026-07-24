@@ -74,12 +74,13 @@ Successful JAR files are placed in `minecraft_versions/`, `releases/v<version>/`
 
 ## Latest update
 
-- Fixed the Minecraft 26.2 Attribute Swap connection mapping.
-- Fixed the Minecraft 26.2 renderer refresh mapping without hard-linking a removed method.
-- Fixed Freecam startup on Minecraft 26.2 by using the player eye position as the initial camera position.
+- Fixed the startup crash caused by loading a normal Attribute Swap helper from the reserved Mixin package.
+- Moved Attribute Swap runtime state into the regular modules package.
+- Kept the local selected slot and server-held slot synchronized before and after attacks.
+- Fixed the Minecraft 26.2 renderer refresh and Freecam mappings.
 - Kept failed-build version rollback so unsuccessful builds do not advance the project version.
 - Added searchable multi-select entity and block target lists.
-- Stabilized X-Ray renderer hooks, ESP glow handling, Attribute Swap, Freecam state, and bounded Criticals behavior.
+- Stabilized X-Ray renderer hooks, ESP glow handling, Freecam state, and bounded Criticals behavior.
 
 ---
 
