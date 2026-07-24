@@ -14,8 +14,11 @@ import java.util.List;
 public final class ZenithScreen extends Screen {
     private static final Identifier LOGO =
             Identifier.fromNamespaceAndPath(ZenithClient.MOD_ID, "textures/icon.png");
-    private static final Identifier BANNER =
-            Identifier.fromNamespaceAndPath(ZenithClient.MOD_ID, "textures/zenith_banner.png");
+    private static final Identifier BANNER_EXTENSION =
+            Identifier.fromNamespaceAndPath(ZenithClient.MOD_ID, "textures/zenith_banner_extension.png");
+    private static final int BANNER_EXTENSION_TEXTURE_WIDTH = 713;
+    private static final int BANNER_EXTENSION_TEXTURE_HEIGHT = 256;
+    private static final int BANNER_EXTENSION_DRAW_WIDTH = 156;
 
     private static final int BRAND_ORANGE = 0xFFFF5A1F;
     private static final int BRAND_AMBER = 0xFFFFA12B;
@@ -95,7 +98,10 @@ public final class ZenithScreen extends Screen {
         int logoX = left + 12;
         int logoY = top + 10;
         int logoSize = 56;
-        updateBannerAnimation(inside(mouseX, mouseY, logoX, logoY, logoSize, logoSize));
+        int currentHoverWidth = logoSize
+                + Math.round(BANNER_EXTENSION_DRAW_WIDTH * Math.max(0.0F, bannerReveal));
+        updateBannerAnimation(inside(mouseX, mouseY, logoX, logoY,
+                currentHoverWidth, logoSize));
 
         g.fill(0, 0, width, height, 0xC0060708);
         int shadow = Math.min(4, Math.min(left, top));
@@ -232,21 +238,31 @@ public final class ZenithScreen extends Screen {
 
     private void drawExpandingBanner(GuiGraphicsExtractor g, int left, int top, int accent) {
         if (bannerReveal <= 0.01F) return;
-        int x = left + 12;
+
+        int logoX = left + 12;
         int y = top + 10;
         int fixedHeight = 56;
-        int collapsedW = 56;
-        int fullBannerW = Math.max(collapsedW, Math.min(220, width - x - 8));
-        int revealW = collapsedW
-                + Math.round((fullBannerW - collapsedW) * easeOut(bannerReveal));
+        int extensionX = logoX + 55;
+        int revealWidth = Math.round(BANNER_EXTENSION_DRAW_WIDTH * easeOut(bannerReveal));
+        if (revealWidth <= 0) return;
 
-        g.fill(x - 3, y - 3, x + revealW + 3, y + fixedHeight + 3, 0xB8000000);
-        g.enableScissor(x, y, x + revealW, y + fixedHeight);
-        g.fill(x, y, x + fullBannerW, y + fixedHeight, 0xFF07080A);
-        g.blit(RenderPipelines.GUI_TEXTURED, BANNER, x, y,
-                0, 0, fullBannerW, fixedHeight,
-                1024, 341, 1024, 341, 0xFFFFFFFF);
+        // The Z icon remains completely stationary. Only the title/frame strip
+        // is revealed to its right, preventing the hover graphic from jumping,
+        // stretching, or replacing the compact mark.
+        g.fill(extensionX, y - 2, extensionX + revealWidth + 2,
+                y + fixedHeight + 2, 0xA8000000);
+        g.enableScissor(extensionX, y, extensionX + revealWidth, y + fixedHeight);
+        g.blit(RenderPipelines.GUI_TEXTURED, BANNER_EXTENSION, extensionX, y,
+                0, 0, BANNER_EXTENSION_DRAW_WIDTH, fixedHeight,
+                BANNER_EXTENSION_TEXTURE_WIDTH, BANNER_EXTENSION_TEXTURE_HEIGHT,
+                BANNER_EXTENSION_TEXTURE_WIDTH, BANNER_EXTENSION_TEXTURE_HEIGHT,
+                0xFFFFFFFF);
         g.disableScissor();
+
+        // Redraw the compact mark last so its right edge remains crisp.
+        g.blit(RenderPipelines.GUI_TEXTURED, LOGO, logoX, y,
+                0, 0, fixedHeight, fixedHeight,
+                256, 256, 256, 256, 0xFFFFFFFF);
     }
 
     private static float easeOut(float value) {

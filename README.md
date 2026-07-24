@@ -74,18 +74,12 @@ Successful JAR files are placed in `minecraft_versions/`, `releases/v<version>/`
 
 ## Latest update
 
-- Added X-Ray-only ore lighting so selected blocks render at maximum light even in enclosed caves.
-- Replaced the unreliable Sodium face-state reflection with direct renderer state hooks and full-bright quad lighting.
-- Kept every face of selected X-Ray blocks visible while hidden blocks remain removed from chunk meshes.
-- Reworked Freecam movement so key states are no longer destroyed, left/right directions are correct, the camera moves smoothly, and the real player remains anchored.
-- Disabled the older duplicate Freecam loop that was fighting the detached camera controller.
-- Prevented Freecam movement packets from moving the real player while the detached camera is active.
-- Made ESP cleanup persistent for the current world so former targets cannot turn into permanent white outlines after leaving range or disabling ESP.
-- Rebuilt the main Click GUI with fixed-size cards and scrolling instead of shrinking buttons until text is cut off.
-- Reworked the compact Z mark to match the banner and kept the hover animation at a fixed height while it reveals only to the right.
-- The entity selector now virtualizes the complete loaded entity registry, shows the total count, supports every registered namespace, and has no artificial entry limit.
-- Updated the Mod Menu icon with additional padding and a closed right edge so the mark is no longer cropped or squeezed.
-- Failed builds still restore the previous project version automatically.
+- Freecam now disables chunk occlusion while active so loaded geometry behind the original player view remains renderable.
+- Freecam temporarily uses first-person camera rendering and restores the previous perspective when disabled.
+- Entering and leaving Freecam rebuilds chunk visibility to prevent missing walls and delayed geometry.
+- The compact Z logo no longer changes size or gets replaced during hover.
+- Hovering the Z now reveals only a matching ZenithClient extension toward the right.
+- X-Ray, ESP cleanup, complete registry selection, scrolling module tabs, padded Mod Menu artwork, and failed-build version rollback remain included from the previous updates.
 
 ---
 

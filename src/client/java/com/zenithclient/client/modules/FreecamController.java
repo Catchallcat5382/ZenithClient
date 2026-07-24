@@ -1,5 +1,7 @@
 package com.zenithclient.client.modules;
 
+import com.zenithclient.client.ZenithClient;
+import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.phys.Vec3;
 
@@ -13,6 +15,7 @@ public final class FreecamController {
     private static float previousYaw, previousPitch;
     private static double anchorX, anchorY, anchorZ;
     private static float anchorYaw, anchorPitch;
+    private static CameraType previousCameraType;
 
     private FreecamController() { }
 
@@ -22,6 +25,9 @@ public final class FreecamController {
             return;
         }
         if (!active || playerReference != mc.player) activate(mc);
+        if (mc.options.getCameraType() != CameraType.FIRST_PERSON) {
+            mc.options.setCameraType(CameraType.FIRST_PERSON);
+        }
 
         // Mouse input updates the player rotation during the normal client tick.
         // Capture only that delta for the detached camera, then restore the player.
@@ -67,6 +73,8 @@ public final class FreecamController {
     private static void activate(Minecraft mc) {
         active = true;
         playerReference = mc.player;
+        previousCameraType = mc.options.getCameraType();
+        mc.options.setCameraType(CameraType.FIRST_PERSON);
         Vec3 camera = mc.player.getEyePosition();
         x = previousX = camera.x;
         y = previousY = camera.y;
@@ -77,6 +85,7 @@ public final class FreecamController {
         anchorY = mc.player.getY();
         anchorZ = mc.player.getZ();
         holdPlayer(mc);
+        ZenithClient.refreshWorldRenderer();
     }
 
     private static void holdPlayer(Minecraft mc) {
@@ -88,8 +97,19 @@ public final class FreecamController {
     }
 
     private static void deactivate() {
+        if (!active) return;
+
+        Minecraft mc = Minecraft.getInstance();
         active = false;
         playerReference = null;
+
+        if (previousCameraType != null) {
+            mc.options.setCameraType(previousCameraType);
+            previousCameraType = null;
+        }
+
+        // Rebuild the normal occlusion graph after leaving Freecam.
+        if (mc.level != null) ZenithClient.refreshWorldRenderer();
     }
 
     public static boolean active() { return active; }

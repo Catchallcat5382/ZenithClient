@@ -19,6 +19,7 @@
     "ChatCommandMixin",
     "CameraFreecamMixin",
     "FreecamTickMixin",
+    "FreecamOcclusionMixin",
     "ZenithClientFreecamDisableMixin",
     "ZenithClientRefreshMixin",
     "NoFireOverlayMixin"
