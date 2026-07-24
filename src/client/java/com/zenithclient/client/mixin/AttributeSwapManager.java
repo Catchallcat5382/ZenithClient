@@ -4,78 +4,49 @@ import com.zenithclient.client.ZenithClient;
 import com.zenithclient.client.ZenithConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
+import net.minecraft.world.entity.player.Player;
 
+/** Single source of truth for Attribute Swap state. */
 final class AttributeSwapManager {
     private static int originalSlot = -1;
     private static int restoreTicks = -1;
 
     private AttributeSwapManager() { }
 
-    static void beforeAttack() {
-        Minecraft client = Minecraft.getInstance();
+    static void beforeAttack(Player player) {
         ZenithConfig config = ZenithClient.getConfig();
-        if (!config.attributeSwap || client.player == null || client.player.connection == null) return;
+        if (!config.attributeSwap || player == null || player.connection == null || originalSlot >= 0) return;
 
-        int current = selectedSlot(client);
+        int current = player.getInventory().getSelectedSlot();
         int wanted = Math.max(0, Math.min(8, config.attributeSwapSlot - 1));
         if (current == wanted) return;
 
         originalSlot = current;
         restoreTicks = -1;
-        setSelectedSlot(client, wanted);
-        client.player.connection.send(new ServerboundSetCarriedItemPacket(wanted));
+        player.getInventory().setSelectedSlot(wanted);
+        player.connection.send(new ServerboundSetCarriedItemPacket(wanted));
     }
 
     static void afterAttack() {
         if (originalSlot < 0) return;
-        ZenithConfig config = ZenithClient.getConfig();
-        restoreTicks = Math.max(1, Math.min(5, config.attributeSwapRestoreDelayTicks));
+        restoreTicks = Math.max(1, Math.min(20,
+                ZenithClient.getConfig().attributeSwapRestoreDelayTicks));
     }
 
     static void tick() {
-        if (restoreTicks < 0) return;
-        if (--restoreTicks > 0) return;
+        if (originalSlot < 0) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.player.connection == null) {
+            originalSlot = -1;
+            restoreTicks = -1;
+            return;
+        }
+        if (restoreTicks < 0 || --restoreTicks > 0) return;
 
-        Minecraft client = Minecraft.getInstance();
         int slot = originalSlot;
         originalSlot = -1;
         restoreTicks = -1;
-
-        if (slot < 0 || client.player == null || client.player.connection == null) return;
-        setSelectedSlot(client, slot);
-        client.player.connection.send(new ServerboundSetCarriedItemPacket(slot));
-    }
-
-    private static int selectedSlot(Minecraft client) {
-        Object inventory = client.player.getInventory();
-        try {
-            return (int) inventory.getClass().getMethod("getSelectedSlot").invoke(inventory);
-        } catch (ReflectiveOperationException ignored) {
-            for (String name : new String[]{"selected", "selectedSlot"}) {
-                try {
-                    var field = inventory.getClass().getDeclaredField(name);
-                    field.setAccessible(true);
-                    return field.getInt(inventory);
-                } catch (ReflectiveOperationException ignoredAgain) { }
-            }
-            return 0;
-        }
-    }
-
-    private static void setSelectedSlot(Minecraft client, int slot) {
-        Object inventory = client.player.getInventory();
-        try {
-            inventory.getClass().getMethod("setSelectedSlot", int.class).invoke(inventory, slot);
-            return;
-        } catch (ReflectiveOperationException ignored) { }
-
-        for (String name : new String[]{"selected", "selectedSlot"}) {
-            try {
-                var field = inventory.getClass().getDeclaredField(name);
-                field.setAccessible(true);
-                field.setInt(inventory, slot);
-                return;
-            } catch (ReflectiveOperationException ignoredAgain) { }
-        }
+        mc.player.getInventory().setSelectedSlot(slot);
+        mc.player.connection.send(new ServerboundSetCarriedItemPacket(slot));
     }
 }

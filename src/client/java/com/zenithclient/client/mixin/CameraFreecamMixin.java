@@ -1,9 +1,8 @@
 package com.zenithclient.client.mixin;
 
-import com.zenithclient.client.ZenithClient;
+import com.zenithclient.client.modules.FreecamController;
 import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
-import net.minecraft.client.Minecraft;
 import net.minecraft.world.level.material.FogType;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
@@ -19,17 +18,16 @@ public abstract class CameraFreecamMixin {
     @Shadow protected abstract void setRotation(float yRot, float xRot);
     @Shadow private boolean detached;
 
-    @Inject(method = "update", at = @At("TAIL"))
+    @Inject(method = "update", at = @At("TAIL"), require = 0)
     private void zenith$applyFreecam(DeltaTracker deltaTracker, CallbackInfo ci) {
-        Minecraft client = Minecraft.getInstance();
-        if (!ZenithClient.isFreecamActive() || client.player == null) return;
-        this.detached = true;
-        this.setPosition(ZenithClient.freecamPosition());
-        this.setRotation(client.player.getYRot(), client.player.getXRot());
+        if (!FreecamController.active()) return;
+        detached = true;
+        setPosition(FreecamController.position());
+        setRotation(FreecamController.yaw(), FreecamController.pitch());
     }
 
-    @Inject(method = "getFluidInCamera", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "getFluidInCamera", at = @At("HEAD"), cancellable = true, require = 0)
     private void zenith$freecamNoFluidFog(CallbackInfoReturnable<FogType> cir) {
-        if (ZenithClient.isFreecamActive()) cir.setReturnValue(FogType.NONE);
+        if (FreecamController.active()) cir.setReturnValue(FogType.NONE);
     }
 }

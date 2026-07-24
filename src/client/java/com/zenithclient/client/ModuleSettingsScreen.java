@@ -5,14 +5,20 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/** Custom-drawn per-module settings screen. Right-click a module card to open it. */
+/** Orange-and-charcoal per-module settings screen. */
 public final class ModuleSettingsScreen extends Screen {
+    private static final Identifier BANNER =
+            Identifier.fromNamespaceAndPath(ZenithClient.MOD_ID, "textures/zenith_banner.png");
+    private static final int BRAND_ORANGE = 0xFFFF5A1F;
+
     public enum Type { PLAYER, ENTITY, ITEM, PROJECTILE, BLOCKS, TRAJECTORY, XRAY, NO_BLINDNESS, NO_FIRE_OVERLAY, FLIGHT, SPEED, AUTO_SPRINT, NO_SLOW, NO_STUN, NO_FALL, CRITICALS, AUTO_TOTEM, ATTRIBUTE_SWAP, KILL_AURA, REACH, INFINITE_REACH, MACE_KILL, AIR_JUMP, FREECAM, FULLBRIGHT, FPS, COORDINATES }
     private enum Action { KEYBIND, OPTION, BACK }
     private record Hit(Action action, int index, int x, int y, int w, int h) {
@@ -37,6 +43,8 @@ public final class ModuleSettingsScreen extends Screen {
         this.parent = parent;
         this.config = config;
         this.type = type;
+        if (config.uiAccentColor == 0xFF2F8CFF) config.uiAccentColor = BRAND_ORANGE;
+        if (config.maceKillHeight > 3.0 || config.maceKillHeight < 1.6) config.maceKillHeight = 2.1;
     }
 
     public static ModuleSettingsScreen of(Screen parent, ZenithConfig config, Type type) {
@@ -45,100 +53,124 @@ public final class ModuleSettingsScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
-        int panelW = Math.min(520, width - 28);
-        int panelH = Math.min(450, height - 24);
+        int panelW = Math.min(570, width - 28);
+        int panelH = Math.min(468, height - 24);
         int left = (width - panelW) / 2;
         int top = (height - panelH) / 2;
         int accent = opaque(config.uiAccentColor);
-        int panel = alpha(config.uiPanelColor, config.uiPanelOpacity);
 
         hits.clear();
-        g.fill(0, 0, width, height, 0x78000000);
-        g.fill(left, top, left + panelW, top + panelH, panel);
-        g.fill(left, top, left + panelW, top + 3, accent);
-        g.text(font, title(), left + 18, top + 14, 0xFFF4F4F4, true);
-        g.text(font, description(), left + 18, top + 30, 0xFFAAAAAA, false);
+        g.fill(0, 0, width, height, 0xB0060708);
+        g.fill(left - 7, top - 7, left + panelW + 7, top + panelH + 7, 0x46000000);
+        g.fill(left, top, left + panelW, top + panelH, alpha(0xFF090A0C, config.uiPanelOpacity));
+        drawFrame(g, left, top, panelW, panelH, accent);
+        g.fill(left + 1, top + 1, left + panelW - 1, top + 63, 0xEA0E1013);
+        g.fill(left + 18, top + 58, left + 126, top + 60, accent);
+
+        g.text(font, title().toUpperCase(), left + 18, top + 15, 0xFFF7F7F8, true);
+        g.text(font, description(), left + 18, top + 32, 0xFF9298A1, false);
+
+        int brandW = 118;
+        int brandH = 39;
+        g.fill(left + panelW - brandW - 15, top + 12,
+                left + panelW - 15, top + 12 + brandH, 0xFF07080A);
+        drawFrame(g, left + panelW - brandW - 15, top + 12, brandW, brandH, alpha(accent, 70));
+        g.blit(RenderPipelines.GUI_TEXTURED, BANNER,
+                left + panelW - brandW - 13, top + 14,
+                0, 0, brandW - 4, brandH - 4,
+                1024, 341, 1024, 341, 0xFFFFFFFF);
 
         int x = left + 18;
-        int contentTop = top + 54;
-        int contentBottom = top + panelH - 42;
+        int contentTop = top + 72;
+        int contentBottom = top + panelH - 43;
         int w = panelW - 36;
         List<String[]> rows = optionRows();
-        int totalHeight = 38 * (rows.size() + 1);
+        int totalHeight = 40 * (rows.size() + 1);
         maxScroll = Math.max(0, totalHeight - (contentBottom - contentTop));
         scrollOffset = Math.max(0, Math.min(maxScroll, scrollOffset));
         int y = contentTop - scrollOffset;
 
         g.enableScissor(x, contentTop, x + w, contentBottom);
-        if (y + 31 >= contentTop && y < contentBottom)
-            drawRow(g, mouseX, mouseY, Action.KEYBIND, 0, x, y, w, "Keybind", capturingKey ? "PRESS A KEY..." : keyName(getKeybind()), accent, null);
-        y += 38;
+        if (y + 34 >= contentTop && y < contentBottom) {
+            drawRow(g, mouseX, mouseY, Action.KEYBIND, 0, x, y, w,
+                    "Keybind", capturingKey ? "PRESS A KEY..." : keyName(getKeybind()), accent, null);
+        }
+        y += 40;
         for (int i = 0; i < rows.size(); i++) {
-            if (y + 31 >= contentTop && y < contentBottom)
-                drawRow(g, mouseX, mouseY, Action.OPTION, i, x, y, w, rows.get(i)[0], rows.get(i)[1], accent, numeric(i));
-            y += 38;
+            if (y + 34 >= contentTop && y < contentBottom) {
+                drawRow(g, mouseX, mouseY, Action.OPTION, i, x, y, w,
+                        rows.get(i)[0], rows.get(i)[1], accent, numeric(i));
+            }
+            y += 40;
         }
         g.disableScissor();
 
         if (maxScroll > 0) {
-            int trackX = left + panelW - 8;
+            int trackX = left + panelW - 9;
             int trackH = contentBottom - contentTop;
             int thumbH = Math.max(24, trackH * trackH / totalHeight);
             int thumbY = contentTop + (trackH - thumbH) * scrollOffset / maxScroll;
-            g.fill(trackX, contentTop, trackX + 3, contentBottom, 0x44222222);
+            g.fill(trackX, contentTop, trackX + 3, contentBottom, 0xFF25282D);
             g.fill(trackX, thumbY, trackX + 3, thumbY + thumbH, accent);
         }
 
-        int bx = left + panelW - 92;
-        int by = top + panelH - 30;
-        drawSmall(g, mouseX, mouseY, Action.BACK, 0, bx, by, 74, 20, "Back", accent);
+        int bx = left + panelW - 96;
+        int by = top + panelH - 31;
+        drawSmall(g, mouseX, mouseY, Action.BACK, 0, bx, by, 78, 21, "BACK", accent);
         super.extractRenderState(g, mouseX, mouseY, delta);
     }
 
     private void drawRow(GuiGraphicsExtractor g, int mx, int my, Action action, int index,
                          int x, int y, int w, String label, String value, int accent, Numeric numeric) {
-        boolean hover = inside(mx, my, x, y, w, 31);
-        int bg = hover ? alpha(accent, 92) : alpha(0xFF272727, config.uiButtonOpacity);
-        g.fill(x, y, x + w, y + 33, bg);
-        g.fill(x, y, x + 3, y + 33, accent);
-        g.text(font, label, x + 11, y + 7, 0xFFF0F0F0, true);
+        boolean hover = inside(mx, my, x, y, w, 34);
+        g.fill(x, y, x + w, y + 34, hover ? alpha(accent, 14) : alpha(0xFF121418, config.uiButtonOpacity));
+        drawFrame(g, x, y, w, 34, hover ? accent : 0xFF30343A);
+        g.fill(x, y, x + 3, y + 34, accent);
+        g.text(font, label, x + 12, y + 8, hover ? 0xFFFFFFFF : 0xFFE5E6E8, true);
 
         String shown = editingNumber == index && action == Action.OPTION ? numberBuffer + "_" : value;
         int tw = font.width(shown);
-        int valueColor = hover ? 0xFFFFFFFF : (capturingKey && action == Action.KEYBIND ? 0xFFFFFF66 : accent);
+        int valueColor = hover ? 0xFFFFFFFF : (capturingKey && action == Action.KEYBIND ? 0xFFFFD166 : accent);
         if (numeric != null) {
-            int boxW = Math.max(54, tw + 12);
-            int boxX = x + w - boxW - 8;
-            g.fill(boxX, y + 5, boxX + boxW, y + 18, editingNumber == index ? 0xAA111111 : 0x66222222);
-            g.fill(boxX, y + 18, boxX + boxW, y + 19, editingNumber == index ? accent : 0x77555555);
-            g.text(font, shown, boxX + boxW - tw - 6, y + 7, valueColor, false);
+            int boxW = Math.max(58, tw + 14);
+            int boxX = x + w - boxW - 9;
+            g.fill(boxX, y + 5, boxX + boxW, y + 19, 0xD008090B);
+            g.fill(boxX, y + 19, boxX + boxW, y + 20, editingNumber == index ? accent : 0xFF4B5058);
+            g.text(font, shown, boxX + boxW - tw - 7, y + 8, valueColor, false);
         } else {
-            g.text(font, shown, x + w - tw - 11, y + 7, valueColor, false);
+            g.text(font, shown, x + w - tw - 12, y + 8, valueColor, false);
         }
 
         if (numeric != null) {
-            int sx = x + 11;
-            int sw = w - 22;
-            int sy = y + 24;
+            int sx = x + 12;
+            int sw = w - 24;
+            int sy = y + 26;
             double valueNow = numericValue(index);
             double ratio = (valueNow - numeric.min) / (numeric.max - numeric.min);
             ratio = Math.max(0, Math.min(1, ratio));
             int knobX = sx + (int) Math.round(sw * ratio);
-            g.fill(sx, sy, sx + sw, sy + 4, 0x88555555);
-            g.fill(sx, sy, knobX, sy + 4, hover ? 0xFFFFFFFF : accent);
+            g.fill(sx, sy, sx + sw, sy + 3, 0xFF3B3F46);
+            g.fill(sx, sy, knobX, sy + 3, accent);
             g.fill(knobX - 2, sy - 2, knobX + 3, sy + 6, 0xFFFFFFFF);
         }
-
-        if (hover) g.fill(x, y, x + w, y + 1, 0x88FFFFFF);
-        hits.add(new Hit(action, index, x, y, w, 33));
+        hits.add(new Hit(action, index, x, y, w, 34));
     }
 
     private void drawSmall(GuiGraphicsExtractor g, int mx, int my, Action action, int index,
                            int x, int y, int w, int h, String text, int accent) {
         boolean hover = inside(mx, my, x, y, w, h);
-        g.fill(x, y, x + w, y + h, hover ? alpha(accent, 170) : alpha(accent, 95));
-        g.text(font, text, x + (w - font.width(text)) / 2, y + 6, 0xFFFFFFFF, true);
+        g.fill(x, y, x + w, y + h, hover ? accent : 0xFF111318);
+        drawFrame(g, x, y, w, h, accent);
+        g.text(font, text, x + (w - font.width(text)) / 2, y + 7,
+                hover ? 0xFF08090B : 0xFFFFFFFF, true);
         hits.add(new Hit(action, index, x, y, w, h));
+    }
+
+    private static void drawFrame(GuiGraphicsExtractor g, int x, int y, int w, int h, int color) {
+        g.fill(x, y, x + w, y + 1, color);
+        g.fill(x, y + h - 1, x + w, y + h, color);
+        g.fill(x, y, x + 1, y + h, color);
+        g.fill(x + w - 1, y, x + w, y + h, color);
     }
 
     @Override
@@ -155,9 +187,9 @@ public final class ModuleSettingsScreen extends Screen {
                 if ((event.buttonInfo().button() == 1 || isEntityPickerRow(hit.index)) && openRegistryPicker(hit.index)) return true;
                 Numeric numeric = numeric(hit.index);
                 if (numeric != null) {
-                    int sliderLeft = hit.x + 11;
-                    int sliderWidth = hit.w - 22;
-                    if (event.y() >= hit.y + 18) {
+                    int sliderLeft = hit.x + 12;
+                    int sliderWidth = hit.w - 24;
+                    if (event.y() >= hit.y + 19) {
                         double ratio = Math.max(0, Math.min(1, (event.x() - sliderLeft) / (double) sliderWidth));
                         setNumeric(hit.index, numeric.min + ratio * (numeric.max - numeric.min));
                         draggingNumber = hit.index;
@@ -187,8 +219,8 @@ public final class ModuleSettingsScreen extends Screen {
                 if (hit.action == Action.OPTION && hit.index == draggingNumber) {
                     Numeric numeric = numeric(hit.index);
                     if (numeric == null) break;
-                    int sliderLeft = hit.x + 11;
-                    int sliderWidth = hit.w - 22;
+                    int sliderLeft = hit.x + 12;
+                    int sliderWidth = hit.w - 24;
                     double ratio = Math.max(0, Math.min(1, (event.x() - sliderLeft) / (double) sliderWidth));
                     setNumeric(hit.index, numeric.min + ratio * (numeric.max - numeric.min));
                     numberBuffer = numeric.integer ? Integer.toString((int) Math.round(numericValue(hit.index))) : trim(numericValue(hit.index));
@@ -257,14 +289,8 @@ public final class ModuleSettingsScreen extends Screen {
     }
 
     private void appendNumberCharacter(char c) {
-        if (replaceNumberOnType) {
-            numberBuffer = "";
-            replaceNumberOnType = false;
-        }
-        if (c == '-') {
-            if (numberBuffer.isEmpty()) numberBuffer = "-";
-            return;
-        }
+        if (replaceNumberOnType) { numberBuffer = ""; replaceNumberOnType = false; }
+        if (c == '-') { if (numberBuffer.isEmpty()) numberBuffer = "-"; return; }
         if (c == '.' && numberBuffer.contains(".")) return;
         if (numberBuffer.length() < 12) numberBuffer += c;
     }
@@ -289,10 +315,10 @@ public final class ModuleSettingsScreen extends Screen {
             case XRAY -> null;
             case FLIGHT -> switch (index) { case 0, 1 -> new Numeric(0.1, 10, 0.1, false); case 2 -> new Numeric(1, 4, 0.1, false); default -> null; };
             case SPEED -> switch (index) { case 1 -> new Numeric(0.1, 10, 0.1, false); default -> null; };
-            case ATTRIBUTE_SWAP -> switch (index) { case 1 -> new Numeric(1, 9, 1, true); case 2 -> new Numeric(1, 5, 1, true); default -> null; };
+            case ATTRIBUTE_SWAP -> switch (index) { case 1 -> new Numeric(1, 9, 1, true); case 2 -> new Numeric(1, 20, 1, true); default -> null; };
             case KILL_AURA -> switch (index) { case 1, 2 -> new Numeric(1, 20, 0.5, false); default -> null; };
             case REACH -> switch (index) { case 1 -> new Numeric(3, 20, 0.5, false); default -> null; };
-            case MACE_KILL -> switch (index) { case 1 -> new Numeric(4, 10000, 1, false); default -> null; };
+            case MACE_KILL -> switch (index) { case 1 -> new Numeric(1.6, 3.0, 0.1, false); default -> null; };
             case FREECAM -> switch (index) { case 1 -> new Numeric(0.1, 10, 0.1, false); default -> null; };
             default -> null;
         };
@@ -350,16 +376,16 @@ public final class ModuleSettingsScreen extends Screen {
             case PROJECTILE -> { rows.add(row("Projectile ESP", onOff(config.projectileEsp))); rows.add(row("Color", colorName(config.projectileEspColor))); rows.add(row("Range", config.entityRange + " blocks")); rows.add(row("Tracers", onOff(config.projectileTracers))); }
             case BLOCKS -> { rows.add(row("Block type", config.blockHighlightMode.displayName())); rows.add(row("Search radius", config.blockRadius + " blocks")); rows.add(row("Outline color", colorName(config.blockOutlineColor))); rows.add(row("Fill opacity", config.blockFillOpacity + "%")); rows.add(row("Filter", empty(config.blockSearch) ? "Selected block type" : config.blockSearch)); }
             case TRAJECTORY -> { rows.add(row("Simulation quality", Integer.toString(config.lineDensity))); rows.add(row("Line color", colorName(config.trajectoryColor))); rows.add(row("Thickness", Integer.toString(config.trajectoryThickness))); rows.add(row("Start distance", trim(config.trajectoryStartDistance))); }
-            case XRAY -> { rows.add(row("Visible blocks", config.xrayMode.displayName())); rows.add(row("Status", "Experimental")); rows.add(row("Filter", empty(config.xraySearch) ? "Selected X-Ray mode" : config.xraySearch)); }
-            case NO_BLINDNESS -> { rows.add(row("No Blindness", onOff(config.noBlindness))); }
-            case NO_FIRE_OVERLAY -> { rows.add(row("No Fire Overlay", onOff(config.noFireOverlay))); }
+            case XRAY -> { rows.add(row("Visible blocks", config.xrayMode.displayName())); rows.add(row("Renderer", "Stable chunk rebuild")); rows.add(row("Filter", empty(config.xraySearch) ? "Selected X-Ray mode" : config.xraySearch)); }
+            case NO_BLINDNESS -> rows.add(row("No Blindness", onOff(config.noBlindness)));
+            case NO_FIRE_OVERLAY -> rows.add(row("No Fire Overlay", onOff(config.noFireOverlay)));
             case FLIGHT -> { rows.add(row("Horizontal speed", trim(config.flightSpeed))); rows.add(row("Vertical speed", trim(config.flightVerticalSpeed))); rows.add(row("Sprint multiplier", trim(config.flightSprintMultiplier) + "x")); }
             case SPEED -> { rows.add(row("Speed", onOff(config.speed))); rows.add(row("Amount", trim(config.speedAmount))); }
             case ATTRIBUTE_SWAP -> { rows.add(row("Attribute Swap", onOff(config.attributeSwap))); rows.add(row("Hotbar slot", Integer.toString(config.attributeSwapSlot))); rows.add(row("Restore delay", config.attributeSwapRestoreDelayTicks + " ticks")); }
             case KILL_AURA -> { rows.add(row("Kill Aura", onOff(config.killAura))); rows.add(row("Range", trim(config.killAuraRange))); rows.add(row("Reach", trim(config.reachDistance))); rows.add(row("Choose entity", empty(config.killAuraSearch) ? "Click to search all mobs/entities" : config.killAuraSearch)); }
             case REACH -> { rows.add(row("Reach", onOff(config.reach))); rows.add(row("Distance", trim(config.reachDistance))); }
-            case INFINITE_REACH -> { rows.add(row("Infinite Reach", onOff(config.infiniteReach))); }
-            case MACE_KILL -> { rows.add(row("Mace Kill", onOff(config.maceKill))); rows.add(row("Packet height", trim(config.maceKillHeight))); }
+            case INFINITE_REACH -> rows.add(row("Infinite Reach", onOff(config.infiniteReach)));
+            case MACE_KILL -> { rows.add(row("Mace Kill", onOff(config.maceKill))); rows.add(row("Simulated fall", trim(config.maceKillHeight) + " blocks")); }
             case FREECAM -> { rows.add(row("Freecam", onOff(config.freecam))); rows.add(row("Speed", trim(config.freecamSpeed))); }
             default -> { }
         }
@@ -418,7 +444,7 @@ public final class ModuleSettingsScreen extends Screen {
     private void setKeybind(int key) { switch (type) { case PLAYER -> config.playerEspKey = key; case ENTITY -> config.entityHighlightsKey = key; case ITEM, PROJECTILE -> { } case BLOCKS -> config.blockHighlightsKey = key; case TRAJECTORY -> config.trajectoryPreviewKey = key; case XRAY -> config.xrayKey = key; case NO_BLINDNESS -> config.noBlindnessKey = key; case NO_FIRE_OVERLAY -> config.noFireOverlayKey = key; case FLIGHT -> config.flightKey = key; case SPEED -> config.speedKey = key; case AUTO_SPRINT -> config.autoSprintKey = key; case NO_SLOW -> config.noSlowKey = key; case NO_STUN -> config.noStunKey = key; case NO_FALL -> config.noFallKey = key; case CRITICALS -> config.criticalsKey = key; case AUTO_TOTEM -> config.autoTotemKey = key; case ATTRIBUTE_SWAP -> config.attributeSwapKey = key; case KILL_AURA -> config.killAuraKey = key; case REACH -> config.reachKey = key; case INFINITE_REACH -> config.infiniteReachKey = key; case MACE_KILL -> config.maceKillKey = key; case AIR_JUMP -> config.airJumpKey = key; case FREECAM -> config.freecamKey = key; case FULLBRIGHT -> config.fullbrightKey = key; case FPS -> config.showFpsKey = key; case COORDINATES -> config.showCoordinatesKey = key; } }
 
     private String title() { return switch (type) { case PLAYER -> "Player ESP Settings"; case ENTITY -> "Entity ESP Settings"; case ITEM -> "Item ESP Settings"; case PROJECTILE -> "Projectile ESP Settings"; case BLOCKS -> "Block ESP Settings"; case TRAJECTORY -> "Trajectory Settings"; case XRAY -> "X-Ray Settings"; case NO_BLINDNESS -> "No Blindness Settings"; case NO_FIRE_OVERLAY -> "No Fire Overlay Settings"; case FLIGHT -> "Flight Settings"; case SPEED -> "Speed Settings"; case AUTO_SPRINT -> "Auto Sprint Settings"; case NO_SLOW -> "No Slow Settings"; case NO_STUN -> "No Stun Settings"; case NO_FALL -> "No Fall Settings"; case CRITICALS -> "Criticals Settings"; case AUTO_TOTEM -> "Auto Totem Settings"; case ATTRIBUTE_SWAP -> "Attribute Swap Settings"; case KILL_AURA -> "Kill Aura Settings"; case REACH -> "Reach Settings"; case INFINITE_REACH -> "Infinite Reach Settings"; case MACE_KILL -> "Mace Kill Settings"; case AIR_JUMP -> "Air Jump Settings"; case FREECAM -> "Freecam Settings"; case FULLBRIGHT -> "Fullbright Settings"; case FPS -> "FPS HUD Settings"; case COORDINATES -> "Coordinates HUD Settings"; }; }
-    private String description() { return switch (type) { case PLAYER -> "Highlights other players with stable glow."; case ENTITY -> "Highlights selected entity types."; case ITEM -> "Highlights dropped items."; case PROJECTILE -> "Highlights arrows and other projectiles."; case BLOCKS -> "Shows selected nearby blocks with an overlay."; case TRAJECTORY -> "Predicts projectile paths and collision targets."; case XRAY -> "Rebuilds chunks to show selected blocks."; case NO_BLINDNESS -> "Removes blindness and darkness effects client-side."; case NO_FIRE_OVERLAY -> "Hides the first-person burning overlay."; case FLIGHT -> "Controls horizontal, vertical, and sprint flight speed."; case SPEED -> "Applies custom ground movement speed."; case AUTO_TOTEM -> "Refills your offhand from inventory."; case ATTRIBUTE_SWAP -> "Swaps to a hotbar slot for attacks."; case KILL_AURA -> "Attacks selected nearby targets."; case REACH -> "Extends attack targeting range."; case INFINITE_REACH -> "Uses the maximum client-side reach cap."; case MACE_KILL -> "Sends mace fall-height attack packets."; case FREECAM -> "Moves the camera independently."; default -> "Click the keybind row to bind a key."; }; }
+    private String description() { return switch (type) { case PLAYER -> "Highlights other players with a stable model outline."; case ENTITY -> "Highlights selected entity types."; case ITEM -> "Highlights dropped items."; case PROJECTILE -> "Highlights arrows and other projectiles."; case BLOCKS -> "Shows selected nearby blocks with an overlay."; case TRAJECTORY -> "Predicts projectile paths and collision targets."; case XRAY -> "Shows selected blocks with one controlled renderer rebuild."; case NO_BLINDNESS -> "Removes blindness and darkness effects client-side."; case NO_FIRE_OVERLAY -> "Hides the first-person burning overlay."; case FLIGHT -> "Controls horizontal, vertical, and sprint flight speed."; case SPEED -> "Applies custom ground movement speed."; case AUTO_TOTEM -> "Refills your offhand from inventory."; case ATTRIBUTE_SWAP -> "Swaps to a hotbar slot for the attack, then restores it."; case KILL_AURA -> "Attacks selected nearby targets."; case REACH -> "Extends attack targeting range."; case INFINITE_REACH -> "Uses the maximum configured client-side reach."; case MACE_KILL -> "Uses a small bounded simulated fall instead of extreme heights."; case FREECAM -> "Moves and rotates the camera independently."; default -> "Click the keybind row to bind a key."; }; }
 
     private static String[] row(String a, String b) { return new String[]{a, b}; }
     private static boolean empty(String value) { return value == null || value.isBlank(); }
@@ -426,7 +452,7 @@ public final class ModuleSettingsScreen extends Screen {
     private static boolean inside(double mx, double my, int x, int y, int w, int h) { return mx >= x && mx < x + w && my >= y && my < y + h; }
     private static int opaque(int color) { return 0xFF000000 | (color & 0x00FFFFFF); }
     private static int alpha(int color, int percent) { return (Math.max(0, Math.min(255, Math.round(percent * 2.55F))) << 24) | (color & 0x00FFFFFF); }
-    private static int cycleColor(int color, int direction) { int[] colors = {0xFF3B30, 0x00E5FF, 0x39FF14, 0xFFD60A, 0xBF5AF2, 0xFFFFFF, 0xFF6B35}; int at = 0; for (int i = 0; i < colors.length; i++) if ((colors[i] & 0xFFFFFF) == (color & 0xFFFFFF)) at = i; return colors[Math.floorMod(at + direction, colors.length)]; }
+    private static int cycleColor(int color, int direction) { int[] colors = {0xFF6B35, 0xFF3B30, 0x00E5FF, 0x39FF14, 0xFFD60A, 0xBF5AF2, 0xFFFFFF}; int at = 0; for (int i = 0; i < colors.length; i++) if ((colors[i] & 0xFFFFFF) == (color & 0xFFFFFF)) at = i; return colors[Math.floorMod(at + direction, colors.length)]; }
     private static String colorName(int color) { return switch (color & 0xFFFFFF) { case 0xFF3B30 -> "Red"; case 0x00E5FF -> "Cyan"; case 0x39FF14 -> "Green"; case 0xFFD60A -> "Yellow"; case 0xBF5AF2 -> "Purple"; case 0xFFFFFF -> "White"; case 0xFF6B35 -> "Orange"; default -> String.format("#%06X", color & 0xFFFFFF); }; }
     private static String keyName(int key) { if (key < 0) return "UNBOUND"; String name = GLFW.glfwGetKeyName(key, 0); return name == null ? "KEY " + key : name.toUpperCase(); }
     private static String trim(double value) { String s = String.format(java.util.Locale.ROOT, "%.2f", value); return s.replaceAll("0+$", "").replaceAll("\\.$", ""); }

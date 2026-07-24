@@ -1,19 +1,25 @@
 package com.zenithclient.client;
 
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/** ZenithClient's custom dark metallic Click GUI. */
+/** ZenithClient's orange-and-charcoal Click GUI. */
 public final class ZenithScreen extends Screen {
     private static final Identifier LOGO =
             Identifier.fromNamespaceAndPath(ZenithClient.MOD_ID, "textures/icon.png");
+    private static final Identifier BANNER =
+            Identifier.fromNamespaceAndPath(ZenithClient.MOD_ID, "textures/zenith_banner.png");
+
+    private static final int BRAND_ORANGE = 0xFFFF5A1F;
+    private static final int BRAND_AMBER = 0xFFFFA12B;
+    private static final int LEGACY_BLUE = 0xFF2F8CFF;
 
     private enum Category { VISUALS, COMBAT, MOVEMENT, HUD, CONFIG }
     private enum Module {
@@ -38,89 +44,111 @@ public final class ZenithScreen extends Screen {
     private final ZenithConfig config;
     private final List<Hitbox> hitboxes = new ArrayList<>();
     private Category selectedCategory;
+    private float bannerReveal;
+    private long lastFrameNanos;
 
     public ZenithScreen(Screen parent, ZenithConfig config) {
         super(Component.literal("ZenithClient"));
         this.parent = parent;
         this.config = config;
+        migrateLegacyTheme();
         Category[] tabs = Category.values();
         selectedCategory = tabs[Math.max(0, Math.min(tabs.length - 1, config.lastUiTab))];
+    }
+
+    private void migrateLegacyTheme() {
+        if (config.uiAccentColor == LEGACY_BLUE) {
+            config.uiAccentColor = BRAND_ORANGE;
+            config.uiPanelColor = 0xFF0B0C0E;
+            config.uiSidebarColor = 0xFF101216;
+            config.uiPanelOpacity = Math.max(92, config.uiPanelOpacity);
+            config.uiButtonOpacity = Math.max(86, config.uiButtonOpacity);
+            config.save();
+        }
     }
 
     @Override
     protected void init() {
         hitboxes.clear();
+        lastFrameNanos = System.nanoTime();
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
-        int pw = Math.min(760, Math.max(560, width - 44));
-        int ph = Math.min(430, Math.max(330, height - 44));
+        int pw = Math.min(820, Math.max(600, width - 42));
+        int ph = Math.min(460, Math.max(350, height - 38));
         int left = (width - pw) / 2;
         int top = (height - ph) / 2;
-        int sidebar = 154;
+        int sidebar = 168;
 
         int accent = opaque(config.uiAccentColor);
-        int accentSoft = alpha(accent, 34);
-        int accentGlow = alpha(accent, 18);
-        int panel = alpha(0xFF101216, config.uiPanelOpacity);
-        int side = alpha(0xFF171A20, config.uiPanelOpacity);
+        int panel = alpha(0xFF090A0C, config.uiPanelOpacity);
+        int side = alpha(0xFF111318, config.uiPanelOpacity);
+        int cardOpacity = Math.max(45, Math.min(100, config.uiButtonOpacity));
 
         hitboxes.clear();
+        updateBannerAnimation(inside(mouseX, mouseY, left + 14, top + 13, 52, 52));
 
-        // Dimmed world, outer shadow, and restrained metallic frame.
-        g.fill(0, 0, width, height, 0xB008090B);
-        g.fill(left - 7, top - 7, left + pw + 7, top + ph + 7, 0x36000000);
-        g.fill(left - 3, top - 3, left + pw + 3, top + ph + 3, accentGlow);
+        // Dark world fade and deep shadow.
+        g.fill(0, 0, width, height, 0xC0060708);
+        g.fill(left - 9, top - 9, left + pw + 9, top + ph + 9, 0x46000000);
+        g.fill(left - 5, top - 5, left + pw + 5, top + ph + 5, alpha(accent, 12));
+
+        // Main shell with the thin orange frame used by the supplied banner.
         g.fill(left, top, left + pw, top + ph, panel);
         g.fill(left, top, left + sidebar, top + ph, side);
+        drawFrame(g, left, top, pw, ph, accent);
+        g.fill(left + sidebar, top + 1, left + sidebar + 1, top + ph - 1, alpha(accent, 34));
 
-        // Header and brand line.
-        g.fill(left, top, left + pw, top + 2, accent);
-        g.fill(left + sidebar, top + 2, left + pw, top + 3, alpha(accent, 42));
-        g.fill(left + sidebar - 1, top + 14, left + sidebar, top + ph - 14, alpha(accent, 38));
+        // Header strip.
+        g.fill(left + sidebar, top + 1, left + pw - 1, top + 62, 0xD00D0F12);
+        g.fill(left + sidebar, top + 61, left + pw - 1, top + 62, alpha(accent, 45));
+        g.fill(left + sidebar + 20, top + 56, left + sidebar + 124, top + 58, accent);
 
-        g.fill(left + 12, top + 12, left + 60, top + 60, 0x44000000);
-        g.fill(left + 13, top + 13, left + 59, top + 59, accentSoft);
-        g.blit(RenderPipelines.GUI_TEXTURED, LOGO, left + 13, top + 13,
+        // Compact logo button.
+        g.fill(left + 13, top + 12, left + 67, top + 66, 0xFF08090B);
+        drawFrame(g, left + 13, top + 12, 54, 54, accent);
+        g.blit(RenderPipelines.GUI_TEXTURED, LOGO, left + 17, top + 16,
                 0, 0, 46, 46, 256, 256, 256, 256, 0xFFFFFFFF);
 
-        g.text(font, "ZENITH", left + 68, top + 20, 0xFFFFFFFF, true);
-        g.text(font, "CLIENT", left + 68, top + 32, accent, true);
-        g.text(font, ZenithClient.versionLabel(), left + 68, top + 46, 0xFF9299A3, false);
+        g.text(font, "ZENITH", left + 76, top + 21, accent, true);
+        g.text(font, "CLIENT", left + 76, top + 34, 0xFFF4F4F5, true);
+        g.text(font, ZenithClient.versionLabel(), left + 76, top + 49, 0xFF777D86, false);
 
-        int ty = top + 78;
+        int ty = top + 82;
         for (Category c : Category.values()) {
             boolean active = c == selectedCategory;
-            boolean hover = inside(mouseX, mouseY, left + 12, ty, sidebar - 24, 30);
-
-            int bg = active ? alpha(accent, 26) : hover ? 0x263B4048 : 0x0A000000;
-            if (active) {
-                g.fill(left + 12, ty, left + sidebar - 12, ty + 30, bg);
-                g.fill(left + 12, ty + 4, left + 15, ty + 26, accent);
-                g.fill(left + 15, ty + 29, left + sidebar - 12, ty + 30, accentSoft);
-            } else if (hover) {
-                g.fill(left + 12, ty, left + sidebar - 12, ty + 30, bg);
+            boolean hover = inside(mouseX, mouseY, left + 13, ty, sidebar - 26, 32);
+            if (active || hover) {
+                g.fill(left + 13, ty, left + sidebar - 13, ty + 32,
+                        active ? alpha(accent, 20) : 0xC017191D);
+                g.fill(left + 13, ty, left + 16, ty + 32, active ? accent : alpha(accent, 55));
+                g.fill(left + 16, ty + 31, left + sidebar - 13, ty + 32,
+                        active ? alpha(accent, 55) : 0x243A3D42);
             }
-
-            String tab = label(c);
-            g.text(font, tab, left + 27, ty + 11,
-                    active ? 0xFFFFFFFF : hover ? 0xFFE8EAED : 0xFF9AA0A9, active);
-            hitboxes.add(new Hitbox(HitType.TAB, c.ordinal(), left + 12, ty, sidebar - 24, 30));
-            ty += 38;
+            String tab = label(c).toUpperCase();
+            g.text(font, tab, left + 28, ty + 12,
+                    active ? 0xFFFFFFFF : hover ? 0xFFF0F0F1 : 0xFF888E97, active);
+            hitboxes.add(new Hitbox(HitType.TAB, c.ordinal(), left + 13, ty, sidebar - 26, 32));
+            ty += 39;
         }
 
-        g.text(font, "LEFT CLICK  Toggle", left + 15, top + ph - 38, 0xFF686E77, false);
-        g.text(font, "RIGHT CLICK Settings", left + 15, top + ph - 25, 0xFF686E77, false);
+        g.fill(left + 13, top + ph - 57, left + sidebar - 13, top + ph - 56, 0x263A3D42);
+        g.text(font, "LEFT CLICK", left + 16, top + ph - 45, accent, true);
+        g.text(font, "Toggle", left + 78, top + ph - 45, 0xFF777D86, false);
+        g.text(font, "RIGHT CLICK", left + 16, top + ph - 31, 0xFFF2F2F3, true);
+        g.text(font, "Settings", left + 88, top + ph - 31, 0xFF777D86, false);
 
         int cx = left + sidebar + 22;
-        int cy = top + 70;
-        int cw = pw - sidebar - 42;
+        int cy = top + 78;
+        int cw = pw - sidebar - 44;
+        g.text(font, label(selectedCategory).toUpperCase(), cx, top + 20, 0xFFFFFFFF, true);
+        g.text(font, subtitle(selectedCategory), cx, top + 36, 0xFF858B94, false);
 
-        g.text(font, label(selectedCategory).toUpperCase(), cx, top + 22, 0xFFFFFFFF, true);
-        g.text(font, subtitle(selectedCategory), cx, top + 38, 0xFF858C96, false);
-        g.fill(cx, top + 56, left + pw - 20, top + 57, 0x243B4048);
-        g.fill(cx, top + 56, cx + Math.min(92, cw / 3), top + 57, accent);
+        int pillW = 88;
+        g.fill(left + pw - pillW - 18, top + 17, left + pw - 18, top + 42, 0xFF111318);
+        drawFrame(g, left + pw - pillW - 18, top + 17, pillW, 25, alpha(accent, 65));
+        g.text(font, "RIGHT SHIFT", left + pw - pillW - 9, top + 26, accent, true);
 
         if (selectedCategory == Category.CONFIG) {
             drawConfig(g, mouseX, mouseY, cx, cy, cw, accent);
@@ -132,53 +160,82 @@ public final class ZenithScreen extends Screen {
                 Module module = modules.get(i);
                 int x = cx + (i % 2) * (bw + gap);
                 int y = cy + (i / 2) * 52;
-                drawModule(g, mouseX, mouseY, module, x, y, bw, 42, accent);
+                drawModule(g, mouseX, mouseY, module, x, y, bw, 42, accent, cardOpacity);
             }
         }
 
-        int dx = left + pw - 96;
-        int dy = top + ph - 31;
-        boolean hoverDone = inside(mouseX, mouseY, dx, dy, 76, 21);
-        g.fill(dx - 1, dy - 1, dx + 77, dy + 22, hoverDone ? alpha(accent, 44) : 0x28000000);
-        customButton(g, dx, dy, 76, 21, "DONE",
-                hoverDone ? alpha(accent, 62) : alpha(accent, 32), 0xFFFFFFFF, true);
-        hitboxes.add(new Hitbox(HitType.DONE, 0, dx, dy, 76, 21));
+        int dx = left + pw - 98;
+        int dy = top + ph - 32;
+        boolean hoverDone = inside(mouseX, mouseY, dx, dy, 78, 22);
+        g.fill(dx, dy, dx + 78, dy + 22, hoverDone ? accent : 0xFF111318);
+        drawFrame(g, dx, dy, 78, 22, hoverDone ? BRAND_AMBER : accent);
+        g.text(font, "DONE", dx + (78 - font.width("DONE")) / 2, dy + 7,
+                hoverDone ? 0xFF08090B : 0xFFFFFFFF, true);
+        hitboxes.add(new Hitbox(HitType.DONE, 0, dx, dy, 78, 22));
 
+        // The banner is drawn last so it visibly unfolds over the window.
+        drawExpandingBanner(g, left, top, accent);
         super.extractRenderState(g, mouseX, mouseY, delta);
     }
 
+    private void updateBannerAnimation(boolean hovered) {
+        long now = System.nanoTime();
+        if (lastFrameNanos == 0L) lastFrameNanos = now;
+        float dt = Math.min(0.05F, (now - lastFrameNanos) / 1_000_000_000.0F);
+        lastFrameNanos = now;
+        float target = hovered ? 1.0F : 0.0F;
+        float amount = Math.min(1.0F, dt * 11.0F);
+        bannerReveal += (target - bannerReveal) * amount;
+        if (Math.abs(target - bannerReveal) < 0.002F) bannerReveal = target;
+    }
+
+    private void drawExpandingBanner(GuiGraphicsExtractor g, int left, int top, int accent) {
+        if (bannerReveal <= 0.01F) return;
+        int x = left + 13;
+        int y = top + 12;
+        int collapsedW = 54;
+        int expandedW = 312;
+        int drawW = collapsedW + Math.round((expandedW - collapsedW) * easeOut(bannerReveal));
+        int drawH = Math.max(54, Math.round(drawW / 3.0F));
+        g.fill(x - 4, y - 4, x + drawW + 4, y + drawH + 4, 0xB8000000);
+        g.fill(x, y, x + drawW, y + drawH, 0xFF07080A);
+        drawFrame(g, x, y, drawW, drawH, accent);
+        g.enableScissor(x + 2, y + 2, x + drawW - 2, y + drawH - 2);
+        g.blit(RenderPipelines.GUI_TEXTURED, BANNER, x + 2, y + 2,
+                0, 0, Math.max(1, drawW - 4), Math.max(1, drawH - 4),
+                1024, 341, 1024, 341, 0xFFFFFFFF);
+        g.disableScissor();
+    }
+
+    private static float easeOut(float value) {
+        float inv = 1.0F - Math.max(0.0F, Math.min(1.0F, value));
+        return 1.0F - inv * inv * inv;
+    }
+
     private void drawModule(GuiGraphicsExtractor g, int mx, int my, Module m,
-                            int x, int y, int w, int h, int accent) {
+                            int x, int y, int w, int h, int accent, int cardOpacity) {
         boolean enabled = enabled(m);
         boolean hover = inside(mx, my, x, y, w, h);
+        int bg = enabled ? alpha(accent, 13) : alpha(0xFF111318, cardOpacity);
+        int border = enabled ? accent : hover ? alpha(accent, 70) : 0xFF2B2E34;
 
-        int card = enabled ? alpha(accent, 21) : hover ? 0xD01B1E23 : 0xD014161A;
-        int border = enabled ? alpha(accent, 62) : hover ? 0x4D69717B : 0x26444A52;
+        g.fill(x, y, x + w, y + h, bg);
+        drawFrame(g, x, y, w, h, border);
+        g.fill(x, y, x + 3, y + h, enabled ? accent : 0xFF454A52);
+        if (hover) g.fill(x + 4, y + 1, x + w - 1, y + 2, 0x44FFFFFF);
 
-        g.fill(x - 1, y - 1, x + w + 1, y + h + 1, border);
-        g.fill(x, y, x + w, y + h, card);
-        g.fill(x, y, x + 3, y + h, enabled ? accent : 0xFF4A5058);
-
-        if (hover) {
-            g.fill(x + 3, y, x + w, y + 1, 0x3AFFFFFF);
-            g.fill(x + 3, y + h - 1, x + w, y + h, 0x22000000);
-        }
-
-        int textMax = Math.max(54, w - 68);
+        int textMax = Math.max(54, w - 72);
         g.text(font, fit(moduleName(m), textMax), x + 12, y + 9,
-                enabled ? 0xFFFFFFFF : 0xFFD8DADD, true);
-        g.text(font, enabled ? "ACTIVE" : "INACTIVE", x + 12, y + 25,
-                enabled ? accent : 0xFF7A818A, false);
+                enabled || hover ? 0xFFFFFFFF : 0xFFD3D5D8, true);
+        g.text(font, enabled ? "ENABLED" : "DISABLED", x + 12, y + 25,
+                enabled ? accent : hover ? 0xFFB2B5BA : 0xFF707680, false);
 
-        int sx = x + w - 42;
+        int sx = x + w - 44;
         int sy = y + 13;
-        g.fill(sx - 1, sy - 1, sx + 31, sy + 15, enabled ? alpha(accent, 52) : 0x443A3E44);
-        g.fill(sx, sy, sx + 30, sy + 14, enabled ? alpha(accent, 88) : 0xFF383C42);
-        int knobX = enabled ? sx + 17 : sx + 2;
-        g.fill(knobX, sy + 2, knobX + 11, sy + 12, 0xFFFFFFFF);
-        g.fill(knobX + 1, sy + 3, knobX + 10, sy + 11,
-                enabled ? 0xFFF7F8FF : 0xFFC8CBD0);
-
+        g.fill(sx, sy, sx + 32, sy + 15, enabled ? alpha(accent, 78) : 0xFF2C3036);
+        drawFrame(g, sx, sy, 32, 15, enabled ? accent : 0xFF4B5058);
+        int knobX = enabled ? sx + 18 : sx + 2;
+        g.fill(knobX, sy + 2, knobX + 12, sy + 13, enabled ? 0xFFFFFFFF : 0xFFC4C7CC);
         hitboxes.add(new Hitbox(HitType.MODULE, m.ordinal(), x, y, w, h));
     }
 
@@ -195,25 +252,25 @@ public final class ZenithScreen extends Screen {
         configButton(g, mx, my, HitType.CHAT_MESSAGES, x + bw + gap, y + 54, bw,
                 "Chat messages", config.chatToggleMessages ? "ON" : "OFF", accent);
         configButton(g, mx, my, HitType.RESET_THEME, x, y + 108, bw,
-                "Zenith theme", "RESTORE", accent);
+                "Zenith orange theme", "RESTORE", accent);
     }
 
     private void configButton(GuiGraphicsExtractor g, int mx, int my, HitType type,
                               int x, int y, int w, String title, String value, int accent) {
         boolean hover = inside(mx, my, x, y, w, 42);
-        g.fill(x - 1, y - 1, x + w + 1, y + 43, hover ? alpha(accent, 40) : 0x26444A52);
-        g.fill(x, y, x + w, y + 42, hover ? 0xE01B1E23 : 0xE014161A);
+        g.fill(x, y, x + w, y + 42, hover ? alpha(accent, 15) : 0xE0111317);
+        drawFrame(g, x, y, w, 42, hover ? accent : 0xFF30343A);
         g.fill(x, y, x + 3, y + 42, accent);
         g.text(font, title, x + 12, y + 9, 0xFFF2F3F5, true);
-        g.text(font, value, x + 12, y + 25, accent, false);
+        g.text(font, value, x + 12, y + 25, hover ? 0xFFFFFFFF : accent, false);
         hitboxes.add(new Hitbox(type, 0, x, y, w, 42));
     }
 
-    private void customButton(GuiGraphicsExtractor g, int x, int y, int w, int h,
-                              String text, int bg, int fg, boolean shadow) {
-        g.fill(x, y, x + w, y + h, bg);
-        int tw = font.width(text);
-        g.text(font, text, x + (w - tw) / 2, y + (h - 8) / 2, fg, shadow);
+    private static void drawFrame(GuiGraphicsExtractor g, int x, int y, int w, int h, int color) {
+        g.fill(x, y, x + w, y + 1, color);
+        g.fill(x, y + h - 1, x + w, y + h, color);
+        g.fill(x, y, x + 1, y + h, color);
+        g.fill(x + w - 1, y, x + w, y + h, color);
     }
 
     @Override
@@ -247,9 +304,9 @@ public final class ZenithScreen extends Screen {
                 }
                 case CHAT_MESSAGES -> config.chatToggleMessages = !config.chatToggleMessages;
                 case RESET_THEME -> {
-                    config.uiAccentColor = 0xFF2F8CFF;
-                    config.uiPanelColor = 0xFF101216;
-                    config.uiSidebarColor = 0xFF171A20;
+                    config.uiAccentColor = BRAND_ORANGE;
+                    config.uiPanelColor = 0xFF090A0C;
+                    config.uiSidebarColor = 0xFF111318;
                     config.uiPanelOpacity = 96;
                     config.uiButtonOpacity = 90;
                 }
@@ -440,11 +497,13 @@ public final class ZenithScreen extends Screen {
 
     private static int nextThemeColor(int color) {
         int[] colors = {
-                0xFF2F8CFF, 0xFF55B7FF, 0xFF00C8FF,
-                0xFFB8C0CC, 0xFFE6E9ED, 0xFFFFFFFF
+                BRAND_ORANGE, BRAND_AMBER, 0xFFFF3B30,
+                0xFFFFFFFF, 0xFFB8C0CC, 0xFF00C8FF
         };
         for (int i = 0; i < colors.length; i++) {
-            if (colors[i] == color) return colors[(i + 1) % colors.length];
+            if ((colors[i] & 0xFFFFFF) == (color & 0xFFFFFF)) {
+                return colors[(i + 1) % colors.length];
+            }
         }
         return colors[0];
     }

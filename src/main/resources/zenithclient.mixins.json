@@ -6,11 +6,16 @@
     "LocalPlayerNoSlowMixin",
     "WebBlockNoSlowMixin",
     "CriticalsMixin",
+    "AttributeSwapMixin",
+    "AttributeSwapTickMixin",
     "ServerboundMovePlayerPacketAccessor",
     "ConnectionMixin",
     "EntityGlowMixin",
+    "ModelBlockRendererMixin",
     "ChatCommandMixin",
     "CameraFreecamMixin",
+    "FreecamTickMixin",
+    "ZenithClientRefreshMixin",
     "NoFireOverlayMixin"
   ],
   "injectors": {

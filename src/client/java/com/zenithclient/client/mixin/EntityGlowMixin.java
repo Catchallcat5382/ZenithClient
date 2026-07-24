@@ -8,13 +8,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * Stateless ESP glow override.
- *
- * Never writes Entity#setGlowingTag, so leaving range cannot leave a stale
- * server/vanilla glow bit behind. Every render query is decided from the
- * current module state and current distance.
- */
+/** Adds Zenith ESP glow without disabling normal vanilla glowing. */
 @Mixin(Entity.class)
 public abstract class EntityGlowMixin {
     @Inject(method = "isCurrentlyGlowing", at = @At("RETURN"), cancellable = true, require = 0)
@@ -22,11 +16,9 @@ public abstract class EntityGlowMixin {
         Minecraft mc = Minecraft.getInstance();
         Entity self = (Entity) (Object) this;
         if (mc.player == null || mc.level == null || self == mc.player) return;
-
-        // Explicitly clear the render result for every entity that is no
-        // longer a valid ESP target. This prevents the white-outline fallback
-        // after leaving range and removes every Zenith ESP glow when disabled.
-        cir.setReturnValue(ZenithClient.shouldGlowEsp(self));
+        if (ZenithClient.shouldGlowEsp(self) || ZenithClient.isTrajectoryTarget(self)) {
+            cir.setReturnValue(true);
+        }
     }
 
     @Inject(method = "getTeamColor", at = @At("RETURN"), cancellable = true, require = 0)
