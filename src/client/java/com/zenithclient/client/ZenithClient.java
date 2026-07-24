@@ -58,8 +58,6 @@ public final class ZenithClient implements ClientModInitializer {
     private static ZenithConfig.BlockHighlightMode lastBlockScanMode;
     private static int lastBlockScanRadius = -1;
     private static boolean lastXrayState = CONFIG.xray;
-    private static boolean initialXrayRefreshDone;
-    private static BlockPos lastXrayOutlineOrigin;
     private static Vec3 freecamPosition;
     private static Vec3 freecamAnchor;
     private static int restoreSwapSlot = -1;
@@ -123,12 +121,6 @@ public final class ZenithClient implements ClientModInitializer {
         updateFreecam(client);
         if (restoreSwapSlot >= 0 && ticks >= restoreSwapAfterTick) restoreAttributeSwap(client);
         if (!CONFIG.trajectoryPreview) setTrajectoryTarget(null);
-        if (!CONFIG.xray) {
-            initialXrayRefreshDone = false;
-            if (!XRAY_OUTLINE_BLOCKS.isEmpty()) XRAY_OUTLINE_BLOCKS.clear();
-            lastXrayOutlineOrigin = null;
-        }
-
         if (CONFIG.autoSprint && client.options.keyUp.isDown() && !client.player.isCrouching()) {
             client.player.setSprinting(true);
         }
@@ -141,12 +133,6 @@ public final class ZenithClient implements ClientModInitializer {
             lastXrayState = CONFIG.xray;
             refreshWorldRenderer();
         }
-        if (CONFIG.xray) {
-            BlockPos origin = client.player.blockPosition();
-            boolean moved = lastXrayOutlineOrigin == null || blockDistanceSquared(lastXrayOutlineOrigin, origin) >= 256;
-            if (moved || ticks % 100 == 0 || XRAY_OUTLINE_BLOCKS.isEmpty()) refreshXrayOutlines(client);
-        }
-
         if (CONFIG.blockHighlights) {
             BlockPos origin = client.player.blockPosition();
             boolean settingsChanged = lastBlockScanMode != CONFIG.blockHighlightMode || lastBlockScanRadius != CONFIG.blockRadius;
@@ -566,8 +552,7 @@ public final class ZenithClient implements ClientModInitializer {
     public static void refreshWorldRenderer() {
         Minecraft client = Minecraft.getInstance();
         if (client.level == null || client.player == null) return;
-        refreshXrayOutlines(client);
-        if (CONFIG.xray) return;
+        if (!XRAY_OUTLINE_BLOCKS.isEmpty()) XRAY_OUTLINE_BLOCKS.clear();
 
         int centerX = client.player.blockPosition().getX() >> 4;
         int centerY = client.player.blockPosition().getY() >> 4;
@@ -640,32 +625,6 @@ public final class ZenithClient implements ClientModInitializer {
         }
         autoVaultClip(mode);
         return true;
-    }
-
-    private static void refreshXrayOutlines(Minecraft client) {
-        XRAY_OUTLINE_BLOCKS.clear();
-        if (client.player == null || client.level == null || !CONFIG.xray) return;
-        BlockPos origin = client.player.blockPosition();
-        int radius = Math.max(10, Math.min(32, client.options.renderDistance().get() * 4));
-        int minY = levelMinY(client);
-        int maxY = levelMaxY(client);
-        int minScanY = Math.max(minY, origin.getY() - 40);
-        int maxScanY = Math.min(maxY, origin.getY() + 40);
-        int maxBlocks = 350;
-        int checked = 0;
-        int maxChecks = radius > 24 ? 70000 : 45000;
-        for (int x = -radius; x <= radius && XRAY_OUTLINE_BLOCKS.size() < maxBlocks && checked < maxChecks; x++) {
-            for (int z = -radius; z <= radius && XRAY_OUTLINE_BLOCKS.size() < maxBlocks && checked < maxChecks; z++) {
-                if (x * x + z * z > radius * radius) continue;
-                for (int y = minScanY; y < maxScanY && XRAY_OUTLINE_BLOCKS.size() < maxBlocks && checked < maxChecks; y++) {
-                    checked++;
-                    BlockPos pos = new BlockPos(origin.getX() + x, y, origin.getZ() + z);
-                    Block block = client.level.getBlockState(pos).getBlock();
-                    if (block != Blocks.AIR && XrayHooks.isWhitelisted(block)) XRAY_OUTLINE_BLOCKS.add(pos.immutable());
-                }
-            }
-        }
-        lastXrayOutlineOrigin = origin.immutable();
     }
 
     private static void setSearchFilter(String type, String[] parts) {
@@ -981,7 +940,7 @@ public final class ZenithClient implements ClientModInitializer {
     private static void renderHud(net.minecraft.client.gui.GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
         Minecraft client = Minecraft.getInstance();
         if (client.player == null) return;
-        ScreenSpaceVisualRenderer.render(graphics, client, deltaTracker, CONFIG, HIGHLIGHTED_BLOCKS, XRAY_OUTLINE_BLOCKS);
+        ScreenSpaceVisualRenderer.render(graphics, client, deltaTracker, CONFIG, HIGHLIGHTED_BLOCKS, java.util.List.of());
         int y = 6;
         if (CONFIG.showFps) {
             graphics.text(client.font, "Zenith | " + client.getFps() + " FPS", 6, y,

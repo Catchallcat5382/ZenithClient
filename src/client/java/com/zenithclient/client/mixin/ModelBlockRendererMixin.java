@@ -22,7 +22,10 @@ public abstract class ModelBlockRendererMixin {
     @Inject(method = "skipRendering", at = @At("HEAD"), cancellable = true)
     private void zenith$xrayFaces(BlockState adjacent, Direction direction, CallbackInfoReturnable<Boolean> cir) {
         BlockState state = (BlockState) (Object) this;
-        if (XrayHooks.alpha(state, null) == 255 && XrayHooks.alpha(adjacent, null) == 0) {
+        // Whitelisted ore beside an invisible block must render that face.
+        // The previous alpha == 255 check could never be true because visible
+        // blocks use -1 (vanilla rendering), which made X-ray appear empty.
+        if (!XrayHooks.isBlocked(state.getBlock()) && XrayHooks.isBlocked(adjacent.getBlock())) {
             cir.setReturnValue(false);
         }
     }

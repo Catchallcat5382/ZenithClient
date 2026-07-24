@@ -10,16 +10,28 @@ import net.minecraft.resources.Identifier;
 import java.util.ArrayList;
 import java.util.List;
 
-/** A completely custom-drawn Click GUI. No vanilla Button widgets are used. */
+/** ZenithClient's custom dark metallic Click GUI. */
 public final class ZenithScreen extends Screen {
-    private static final Identifier LOGO = Identifier.fromNamespaceAndPath(ZenithClient.MOD_ID, "textures/icon.png");
+    private static final Identifier LOGO =
+            Identifier.fromNamespaceAndPath(ZenithClient.MOD_ID, "textures/icon.png");
 
     private enum Category { VISUALS, COMBAT, MOVEMENT, HUD, CONFIG }
-    private enum Module { PLAYER_ESP, ENTITY_OUTLINES, ITEM_ESP, PROJECTILE_ESP, BLOCK_OUTLINES, BOW_TRAJECTORY, XRAY, NO_BLINDNESS, NO_FIRE_OVERLAY, FLIGHT, SPEED, AUTO_SPRINT, NO_SLOW, NO_STUN, NO_FALL, AIR_JUMP, FREECAM, CRITICALS, AUTO_TOTEM, ATTRIBUTE_SWAP, KILL_AURA, REACH, INFINITE_REACH, MACE_KILL, FULLBRIGHT, FPS, COORDINATES }
-    private enum HitType { TAB, MODULE, DONE, THEME_ACCENT, PANEL_OPACITY, BUTTON_OPACITY, CHAT_MESSAGES, RESET_THEME }
+    private enum Module {
+        PLAYER_ESP, ENTITY_OUTLINES, ITEM_ESP, PROJECTILE_ESP, BLOCK_OUTLINES,
+        BOW_TRAJECTORY, XRAY, NO_BLINDNESS, NO_FIRE_OVERLAY,
+        FLIGHT, SPEED, AUTO_SPRINT, NO_SLOW, NO_STUN, NO_FALL, AIR_JUMP, FREECAM,
+        CRITICALS, AUTO_TOTEM, ATTRIBUTE_SWAP, KILL_AURA, REACH, INFINITE_REACH,
+        MACE_KILL, FULLBRIGHT, FPS, COORDINATES
+    }
+    private enum HitType {
+        TAB, MODULE, DONE, THEME_ACCENT, PANEL_OPACITY, BUTTON_OPACITY,
+        CHAT_MESSAGES, RESET_THEME
+    }
 
     private record Hitbox(HitType type, int value, int x, int y, int width, int height) {
-        boolean contains(double mx, double my) { return mx >= x && mx < x + width && my >= y && my < y + height; }
+        boolean contains(double mx, double my) {
+            return mx >= x && mx < x + width && my >= y && my < y + height;
+        }
     }
 
     private final Screen parent;
@@ -42,111 +54,163 @@ public final class ZenithScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
-        int pw = Math.min(680, Math.max(500, width - 50));
-        int ph = Math.min(390, Math.max(300, height - 50));
+        int pw = Math.min(760, Math.max(560, width - 44));
+        int ph = Math.min(430, Math.max(330, height - 44));
         int left = (width - pw) / 2;
         int top = (height - ph) / 2;
-        int sidebar = 134;
+        int sidebar = 154;
+
         int accent = opaque(config.uiAccentColor);
-        int panel = alpha(config.uiPanelColor, config.uiPanelOpacity);
-        int side = alpha(config.uiSidebarColor, config.uiPanelOpacity);
+        int accentSoft = alpha(accent, 34);
+        int accentGlow = alpha(accent, 18);
+        int panel = alpha(0xFF101216, config.uiPanelOpacity);
+        int side = alpha(0xFF171A20, config.uiPanelOpacity);
 
         hitboxes.clear();
-        g.fill(0, 0, width, height, 0x76000000);
+
+        // Dimmed world, outer shadow, and restrained metallic frame.
+        g.fill(0, 0, width, height, 0xB008090B);
+        g.fill(left - 7, top - 7, left + pw + 7, top + ph + 7, 0x36000000);
+        g.fill(left - 3, top - 3, left + pw + 3, top + ph + 3, accentGlow);
         g.fill(left, top, left + pw, top + ph, panel);
         g.fill(left, top, left + sidebar, top + ph, side);
-        g.fill(left, top, left + pw, top + 3, accent);
 
-        // Actual Mod Menu icon.
-        g.blit(RenderPipelines.GUI_TEXTURED, LOGO, left + 8, top + 6, 0, 0, 48, 48, 256, 256, 256, 256, 0xFFFFFFFF);
-        g.text(font, "ZenithClient", left + 61, top + 17, 0xFFF4F4F4, true);
-        g.text(font, ZenithClient.versionLabel(), left + 61, top + 29, 0xFF9A9A9A, false);
+        // Header and brand line.
+        g.fill(left, top, left + pw, top + 2, accent);
+        g.fill(left + sidebar, top + 2, left + pw, top + 3, alpha(accent, 42));
+        g.fill(left + sidebar - 1, top + 14, left + sidebar, top + ph - 14, alpha(accent, 38));
 
-        int ty = top + 58;
+        g.fill(left + 12, top + 12, left + 60, top + 60, 0x44000000);
+        g.fill(left + 13, top + 13, left + 59, top + 59, accentSoft);
+        g.blit(RenderPipelines.GUI_TEXTURED, LOGO, left + 13, top + 13,
+                0, 0, 46, 46, 256, 256, 256, 256, 0xFFFFFFFF);
+
+        g.text(font, "ZENITH", left + 68, top + 20, 0xFFFFFFFF, true);
+        g.text(font, "CLIENT", left + 68, top + 32, accent, true);
+        g.text(font, ZenithClient.versionLabel(), left + 68, top + 46, 0xFF9299A3, false);
+
+        int ty = top + 78;
         for (Category c : Category.values()) {
             boolean active = c == selectedCategory;
-            boolean hover = inside(mouseX, mouseY, left + 10, ty, sidebar - 20, 27);
-            int bg = active ? alpha(accent, 78) : hover ? 0x3AFFFFFF : 0x16000000;
-            customButton(g, left + 10, ty, sidebar - 20, 27, label(c), bg, active ? accent : 0xFFD0D0D0, active);
-            hitboxes.add(new Hitbox(HitType.TAB, c.ordinal(), left + 10, ty, sidebar - 20, 27));
-            ty += 34;
+            boolean hover = inside(mouseX, mouseY, left + 12, ty, sidebar - 24, 30);
+
+            int bg = active ? alpha(accent, 26) : hover ? 0x263B4048 : 0x0A000000;
+            if (active) {
+                g.fill(left + 12, ty, left + sidebar - 12, ty + 30, bg);
+                g.fill(left + 12, ty + 4, left + 15, ty + 26, accent);
+                g.fill(left + 15, ty + 29, left + sidebar - 12, ty + 30, accentSoft);
+            } else if (hover) {
+                g.fill(left + 12, ty, left + sidebar - 12, ty + 30, bg);
+            }
+
+            String tab = label(c);
+            g.text(font, tab, left + 27, ty + 11,
+                    active ? 0xFFFFFFFF : hover ? 0xFFE8EAED : 0xFF9AA0A9, active);
+            hitboxes.add(new Hitbox(HitType.TAB, c.ordinal(), left + 12, ty, sidebar - 24, 30));
+            ty += 38;
         }
 
-        int cx = left + sidebar + 18;
-        int cy = top + 56;
-        int cw = pw - sidebar - 34;
-        g.text(font, label(selectedCategory), cx, top + 22, 0xFFF1F1F1, true);
-        g.fill(cx, top + 40, left + pw - 16, top + 41, 0x34FFFFFF);
+        g.text(font, "LEFT CLICK  Toggle", left + 15, top + ph - 38, 0xFF686E77, false);
+        g.text(font, "RIGHT CLICK Settings", left + 15, top + ph - 25, 0xFF686E77, false);
+
+        int cx = left + sidebar + 22;
+        int cy = top + 70;
+        int cw = pw - sidebar - 42;
+
+        g.text(font, label(selectedCategory).toUpperCase(), cx, top + 22, 0xFFFFFFFF, true);
+        g.text(font, subtitle(selectedCategory), cx, top + 38, 0xFF858C96, false);
+        g.fill(cx, top + 56, left + pw - 20, top + 57, 0x243B4048);
+        g.fill(cx, top + 56, cx + Math.min(92, cw / 3), top + 57, accent);
 
         if (selectedCategory == Category.CONFIG) {
             drawConfig(g, mouseX, mouseY, cx, cy, cw, accent);
         } else {
             List<Module> modules = modules(selectedCategory);
-            int gap = 10;
+            int gap = 12;
             int bw = (cw - gap) / 2;
-            int row = 0;
             for (int i = 0; i < modules.size(); i++) {
-                Module m = modules.get(i);
+                Module module = modules.get(i);
                 int x = cx + (i % 2) * (bw + gap);
-                int y = cy + (i / 2) * 48;
-                drawModule(g, mouseX, mouseY, m, x, y, bw, 38, accent);
-                row = Math.max(row, i / 2);
+                int y = cy + (i / 2) * 52;
+                drawModule(g, mouseX, mouseY, module, x, y, bw, 42, accent);
             }
         }
 
-        int dx = left + pw - 90;
+        int dx = left + pw - 96;
         int dy = top + ph - 31;
-        boolean hoverDone = inside(mouseX, mouseY, dx, dy, 74, 20);
-        customButton(g, dx, dy, 74, 20, "Done", hoverDone ? alpha(accent, 150) : alpha(accent, 100), 0xFFFFFFFF, true);
-        hitboxes.add(new Hitbox(HitType.DONE, 0, dx, dy, 74, 20));
+        boolean hoverDone = inside(mouseX, mouseY, dx, dy, 76, 21);
+        g.fill(dx - 1, dy - 1, dx + 77, dy + 22, hoverDone ? alpha(accent, 44) : 0x28000000);
+        customButton(g, dx, dy, 76, 21, "DONE",
+                hoverDone ? alpha(accent, 62) : alpha(accent, 32), 0xFFFFFFFF, true);
+        hitboxes.add(new Hitbox(HitType.DONE, 0, dx, dy, 76, 21));
 
         super.extractRenderState(g, mouseX, mouseY, delta);
     }
 
-    private void drawModule(GuiGraphicsExtractor g, int mx, int my, Module m, int x, int y, int w, int h, int accent) {
+    private void drawModule(GuiGraphicsExtractor g, int mx, int my, Module m,
+                            int x, int y, int w, int h, int accent) {
         boolean enabled = enabled(m);
         boolean hover = inside(mx, my, x, y, w, h);
-        int bg = enabled ? alpha(accent, Math.min(96, config.uiButtonOpacity)) : hover ? 0x4A333333 : alpha(0xFF222222, config.uiButtonOpacity);
-        g.fill(x, y, x + w, y + h, bg);
-        g.fill(x, y, x + 3, y + h, enabled ? accent : 0xFF555555);
+
+        int card = enabled ? alpha(accent, 21) : hover ? 0xD01B1E23 : 0xD014161A;
+        int border = enabled ? alpha(accent, 62) : hover ? 0x4D69717B : 0x26444A52;
+
+        g.fill(x - 1, y - 1, x + w + 1, y + h + 1, border);
+        g.fill(x, y, x + w, y + h, card);
+        g.fill(x, y, x + 3, y + h, enabled ? accent : 0xFF4A5058);
+
         if (hover) {
-            g.fill(x, y, x + w, y + 1, 0x66FFFFFF);
-            g.fill(x, y + h - 1, x + w, y + h, 0x33000000);
+            g.fill(x + 3, y, x + w, y + 1, 0x3AFFFFFF);
+            g.fill(x + 3, y + h - 1, x + w, y + h, 0x22000000);
         }
-        int textMax = Math.max(48, w - 54);
-        g.text(font, fit(moduleName(m), textMax), x + 12, y + 9, enabled ? 0xFFFFFFFF : 0xFFD4D4D4, true);
-        g.text(font, enabled ? "ENABLED" : "DISABLED", x + 12, y + 23, enabled ? 0xFFBFFFC9 : 0xFF888888, false);
-        int sx = x + w - 38;
-        int sy = y + 10;
-        g.fill(sx - 2, sy - 2, sx + 30, sy + 16, 0x66000000);
-        g.fill(sx, sy, sx + 26, sy + 14, enabled ? alpha(accent, 92) : 0xFF4D4D4D);
-        g.fill(sx + 1, sy + 1, sx + 25, sy + 13, enabled ? alpha(accent, 100) : 0xFF666666);
-        int knobX = enabled ? sx + 13 : sx + 2;
+
+        int textMax = Math.max(54, w - 68);
+        g.text(font, fit(moduleName(m), textMax), x + 12, y + 9,
+                enabled ? 0xFFFFFFFF : 0xFFD8DADD, true);
+        g.text(font, enabled ? "ACTIVE" : "INACTIVE", x + 12, y + 25,
+                enabled ? accent : 0xFF7A818A, false);
+
+        int sx = x + w - 42;
+        int sy = y + 13;
+        g.fill(sx - 1, sy - 1, sx + 31, sy + 15, enabled ? alpha(accent, 52) : 0x443A3E44);
+        g.fill(sx, sy, sx + 30, sy + 14, enabled ? alpha(accent, 88) : 0xFF383C42);
+        int knobX = enabled ? sx + 17 : sx + 2;
         g.fill(knobX, sy + 2, knobX + 11, sy + 12, 0xFFFFFFFF);
-        g.fill(knobX + 1, sy + 3, knobX + 10, sy + 11, enabled ? 0xFFEFEFEF : 0xFFCFCFCF);
+        g.fill(knobX + 1, sy + 3, knobX + 10, sy + 11,
+                enabled ? 0xFFF7F8FF : 0xFFC8CBD0);
+
         hitboxes.add(new Hitbox(HitType.MODULE, m.ordinal(), x, y, w, h));
     }
 
-    private void drawConfig(GuiGraphicsExtractor g, int mx, int my, int x, int y, int w, int accent) {
-        int gap = 10;
+    private void drawConfig(GuiGraphicsExtractor g, int mx, int my,
+                            int x, int y, int w, int accent) {
+        int gap = 12;
         int bw = (w - gap) / 2;
-        configButton(g, mx, my, HitType.THEME_ACCENT, x, y, bw, "Accent", colorName(config.uiAccentColor), accent);
-        configButton(g, mx, my, HitType.PANEL_OPACITY, x + bw + gap, y, bw, "Panel opacity", config.uiPanelOpacity + "%", accent);
-        configButton(g, mx, my, HitType.BUTTON_OPACITY, x, y + 48, bw, "Button opacity", config.uiButtonOpacity + "%", accent);
-        configButton(g, mx, my, HitType.CHAT_MESSAGES, x + bw + gap, y + 48, bw, "Chat messages", config.chatToggleMessages ? "ON" : "OFF", accent);
-        configButton(g, mx, my, HitType.RESET_THEME, x, y + 96, bw, "Theme", "Reset", accent);
+        configButton(g, mx, my, HitType.THEME_ACCENT, x, y, bw,
+                "Accent color", colorName(config.uiAccentColor), accent);
+        configButton(g, mx, my, HitType.PANEL_OPACITY, x + bw + gap, y, bw,
+                "Panel opacity", config.uiPanelOpacity + "%", accent);
+        configButton(g, mx, my, HitType.BUTTON_OPACITY, x, y + 54, bw,
+                "Card opacity", config.uiButtonOpacity + "%", accent);
+        configButton(g, mx, my, HitType.CHAT_MESSAGES, x + bw + gap, y + 54, bw,
+                "Chat messages", config.chatToggleMessages ? "ON" : "OFF", accent);
+        configButton(g, mx, my, HitType.RESET_THEME, x, y + 108, bw,
+                "Zenith theme", "RESTORE", accent);
     }
 
-    private void configButton(GuiGraphicsExtractor g, int mx, int my, HitType type, int x, int y, int w, String title, String value, int accent) {
-        boolean hover = inside(mx, my, x, y, w, 38);
-        g.fill(x, y, x + w, y + 38, hover ? 0x4A363636 : 0xCC222222);
-        g.fill(x, y, x + 3, y + 38, accent);
-        g.text(font, title, x + 12, y + 8, 0xFFF0F0F0, true);
-        g.text(font, value, x + 12, y + 23, accent, false);
-        hitboxes.add(new Hitbox(type, 0, x, y, w, 38));
+    private void configButton(GuiGraphicsExtractor g, int mx, int my, HitType type,
+                              int x, int y, int w, String title, String value, int accent) {
+        boolean hover = inside(mx, my, x, y, w, 42);
+        g.fill(x - 1, y - 1, x + w + 1, y + 43, hover ? alpha(accent, 40) : 0x26444A52);
+        g.fill(x, y, x + w, y + 42, hover ? 0xE01B1E23 : 0xE014161A);
+        g.fill(x, y, x + 3, y + 42, accent);
+        g.text(font, title, x + 12, y + 9, 0xFFF2F3F5, true);
+        g.text(font, value, x + 12, y + 25, accent, false);
+        hitboxes.add(new Hitbox(type, 0, x, y, w, 42));
     }
 
-    private void customButton(GuiGraphicsExtractor g, int x, int y, int w, int h, String text, int bg, int fg, boolean shadow) {
+    private void customButton(GuiGraphicsExtractor g, int x, int y, int w, int h,
+                              String text, int bg, int fg, boolean shadow) {
         g.fill(x, y, x + w, y + h, bg);
         int tw = font.width(text);
         g.text(font, text, x + (w - tw) / 2, y + (h - 8) / 2, fg, shadow);
@@ -164,13 +228,31 @@ public final class ZenithScreen extends Screen {
             }
             if (event.buttonInfo().button() != 0) return true;
             switch (h.type) {
-                case TAB -> { selectedCategory = Category.values()[h.value]; config.lastUiTab = h.value; }
-                case DONE -> { onClose(); return true; }
+                case TAB -> {
+                    selectedCategory = Category.values()[h.value];
+                    config.lastUiTab = h.value;
+                }
+                case DONE -> {
+                    onClose();
+                    return true;
+                }
                 case THEME_ACCENT -> config.uiAccentColor = nextThemeColor(config.uiAccentColor);
-                case PANEL_OPACITY -> { config.uiPanelOpacity += 5; if (config.uiPanelOpacity > 100) config.uiPanelOpacity = 70; }
-                case BUTTON_OPACITY -> { config.uiButtonOpacity += 5; if (config.uiButtonOpacity > 100) config.uiButtonOpacity = 55; }
+                case PANEL_OPACITY -> {
+                    config.uiPanelOpacity += 5;
+                    if (config.uiPanelOpacity > 100) config.uiPanelOpacity = 70;
+                }
+                case BUTTON_OPACITY -> {
+                    config.uiButtonOpacity += 5;
+                    if (config.uiButtonOpacity > 100) config.uiButtonOpacity = 55;
+                }
                 case CHAT_MESSAGES -> config.chatToggleMessages = !config.chatToggleMessages;
-                case RESET_THEME -> { config.uiAccentColor = 0xFFFF6B35; config.uiPanelColor = 0xFF151515; config.uiSidebarColor = 0xFF1D1D1D; config.uiPanelOpacity = 94; config.uiButtonOpacity = 88; }
+                case RESET_THEME -> {
+                    config.uiAccentColor = 0xFF2F8CFF;
+                    config.uiPanelColor = 0xFF101216;
+                    config.uiSidebarColor = 0xFF171A20;
+                    config.uiPanelOpacity = 96;
+                    config.uiButtonOpacity = 90;
+                }
                 default -> { }
             }
             config.save();
@@ -282,27 +364,95 @@ public final class ZenithScreen extends Screen {
 
     private static List<Module> modules(Category c) {
         return switch (c) {
-            case VISUALS -> List.of(Module.PLAYER_ESP, Module.ENTITY_OUTLINES, Module.ITEM_ESP, Module.PROJECTILE_ESP, Module.BLOCK_OUTLINES, Module.BOW_TRAJECTORY, Module.XRAY, Module.NO_BLINDNESS, Module.NO_FIRE_OVERLAY);
-            case COMBAT -> List.of(Module.CRITICALS, Module.AUTO_TOTEM, Module.ATTRIBUTE_SWAP, Module.KILL_AURA, Module.REACH, Module.INFINITE_REACH, Module.MACE_KILL);
-            case MOVEMENT -> List.of(Module.FLIGHT, Module.SPEED, Module.AUTO_SPRINT, Module.NO_SLOW, Module.NO_STUN, Module.NO_FALL, Module.AIR_JUMP, Module.FREECAM);
+            case VISUALS -> List.of(
+                    Module.PLAYER_ESP, Module.ENTITY_OUTLINES, Module.ITEM_ESP,
+                    Module.PROJECTILE_ESP, Module.BLOCK_OUTLINES, Module.BOW_TRAJECTORY,
+                    Module.XRAY, Module.NO_BLINDNESS, Module.NO_FIRE_OVERLAY);
+            case COMBAT -> List.of(
+                    Module.CRITICALS, Module.AUTO_TOTEM, Module.ATTRIBUTE_SWAP,
+                    Module.KILL_AURA, Module.REACH, Module.INFINITE_REACH, Module.MACE_KILL);
+            case MOVEMENT -> List.of(
+                    Module.FLIGHT, Module.SPEED, Module.AUTO_SPRINT, Module.NO_SLOW,
+                    Module.NO_STUN, Module.NO_FALL, Module.AIR_JUMP, Module.FREECAM);
             case HUD -> List.of(Module.FULLBRIGHT, Module.FPS, Module.COORDINATES);
             case CONFIG -> List.of();
         };
     }
 
-    private static String moduleName(Module m) { return switch (m) {
-        case PLAYER_ESP -> "Player ESP";
-            case ENTITY_OUTLINES -> "Entity ESP"; case ITEM_ESP -> "Item ESP"; case PROJECTILE_ESP -> "Projectile ESP"; case BLOCK_OUTLINES -> "Block ESP"; case BOW_TRAJECTORY -> "Trajectories";
-        case XRAY -> "X-Ray"; case NO_BLINDNESS -> "No Blindness"; case NO_FIRE_OVERLAY -> "No Fire Overlay"; case FLIGHT -> "Flight"; case AUTO_SPRINT -> "Auto Sprint"; case NO_SLOW -> "No Slow";
-        case NO_STUN -> "No Stun"; case NO_FALL -> "No Fall"; case CRITICALS -> "Criticals"; case AUTO_TOTEM -> "Auto Totem"; case ATTRIBUTE_SWAP -> "Attribute Swap"; case KILL_AURA -> "Kill Aura"; case REACH -> "Reach"; case INFINITE_REACH -> "Infinite Reach"; case SPEED -> "Speed"; case MACE_KILL -> "Mace Kill"; case AIR_JUMP -> "Air Jump"; case FREECAM -> "Freecam"; case FULLBRIGHT -> "Fullbright"; case FPS -> "FPS HUD";
-        case COORDINATES -> "Coordinates";
-    }; }
-    private static String label(Category c) { return c.name().charAt(0) + c.name().substring(1).toLowerCase(); }
-    private static boolean inside(double mx, double my, int x, int y, int w, int h) { return mx >= x && mx < x + w && my >= y && my < y + h; }
-    private static int opaque(int rgb) { return 0xFF000000 | (rgb & 0xFFFFFF); }
-    private static int alpha(int rgb, int percent) { return (Math.max(0, Math.min(255, Math.round(percent * 2.55f))) << 24) | (rgb & 0xFFFFFF); }
-    private static int nextThemeColor(int color) { int[] a={0xFFFF6B35,0xFFB00020,0xFF9C27B0,0xFF00BFA5,0xFFFFC107,0xFFFFFFFF}; for(int i=0;i<a.length;i++)if(a[i]==color)return a[(i+1)%a.length];return a[0]; }
-    private static String colorName(int c) { return String.format("#%06X", c & 0xFFFFFF); }
+    private static String moduleName(Module m) {
+        return switch (m) {
+            case PLAYER_ESP -> "Player ESP";
+            case ENTITY_OUTLINES -> "Entity ESP";
+            case ITEM_ESP -> "Item ESP";
+            case PROJECTILE_ESP -> "Projectile ESP";
+            case BLOCK_OUTLINES -> "Block ESP";
+            case BOW_TRAJECTORY -> "Trajectories";
+            case XRAY -> "X-Ray";
+            case NO_BLINDNESS -> "No Blindness";
+            case NO_FIRE_OVERLAY -> "No Fire Overlay";
+            case FLIGHT -> "Flight";
+            case AUTO_SPRINT -> "Auto Sprint";
+            case NO_SLOW -> "No Slow";
+            case NO_STUN -> "No Stun";
+            case NO_FALL -> "No Fall";
+            case CRITICALS -> "Criticals";
+            case AUTO_TOTEM -> "Auto Totem";
+            case ATTRIBUTE_SWAP -> "Attribute Swap";
+            case KILL_AURA -> "Kill Aura";
+            case REACH -> "Reach";
+            case INFINITE_REACH -> "Infinite Reach";
+            case SPEED -> "Speed";
+            case MACE_KILL -> "Mace Kill";
+            case AIR_JUMP -> "Air Jump";
+            case FREECAM -> "Freecam";
+            case FULLBRIGHT -> "Fullbright";
+            case FPS -> "FPS HUD";
+            case COORDINATES -> "Coordinates";
+        };
+    }
+
+    private static String subtitle(Category c) {
+        return switch (c) {
+            case VISUALS -> "ESP, highlighting, overlays and world rendering";
+            case COMBAT -> "Combat helpers and configurable attack utilities";
+            case MOVEMENT -> "Movement, flight and physics controls";
+            case HUD -> "Clean information overlays";
+            case CONFIG -> "Theme and client presentation";
+        };
+    }
+
+    private static String label(Category c) {
+        return c.name().charAt(0) + c.name().substring(1).toLowerCase();
+    }
+
+    private static boolean inside(double mx, double my, int x, int y, int w, int h) {
+        return mx >= x && mx < x + w && my >= y && my < y + h;
+    }
+
+    private static int opaque(int rgb) {
+        return 0xFF000000 | (rgb & 0xFFFFFF);
+    }
+
+    private static int alpha(int rgb, int percent) {
+        return (Math.max(0, Math.min(255, Math.round(percent * 2.55f))) << 24)
+                | (rgb & 0xFFFFFF);
+    }
+
+    private static int nextThemeColor(int color) {
+        int[] colors = {
+                0xFF2F8CFF, 0xFF55B7FF, 0xFF00C8FF,
+                0xFFB8C0CC, 0xFFE6E9ED, 0xFFFFFFFF
+        };
+        for (int i = 0; i < colors.length; i++) {
+            if (colors[i] == color) return colors[(i + 1) % colors.length];
+        }
+        return colors[0];
+    }
+
+    private static String colorName(int color) {
+        return String.format("#%06X", color & 0xFFFFFF);
+    }
+
     private String fit(String text, int maxWidth) {
         if (font.width(text) <= maxWidth) return text;
         String suffix = "...";

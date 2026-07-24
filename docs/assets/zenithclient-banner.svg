@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="420" viewBox="0 0 1600 420">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#08090b"/>
+      <stop offset="0.58" stop-color="#12151a"/>
+      <stop offset="1" stop-color="#20242a"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.48" stop-color="#aeb6c1"/>
+      <stop offset="1" stop-color="#f4f6f8"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1600" height="420" fill="url(#bg)"/>
+  <path d="M0 338 L1600 78" stroke="#2f8cff" stroke-opacity=".13" stroke-width="2"/>
+  <path d="M0 370 L1600 110" stroke="#ffffff" stroke-opacity=".05" stroke-width="1"/>
+  <g transform="translate(110 74)">
+    <path d="M35 0h226l-52 58H97l-35 38h112l-52 58H0l35-58 40-44H0z" fill="url(#metal)"/>
+    <path d="M183 102l72 72-72 72-72-72z" fill="none" stroke="#2f8cff" stroke-width="13" filter="url(#glow)"/>
+    <path d="M183 128l46 46-46 46-46-46z" fill="#101317" stroke="#dce2e8" stroke-width="5"/>
+  </g>
+  <text x="430" y="198" font-family="Arial, Helvetica, sans-serif" font-size="105" font-weight="800" letter-spacing="4" fill="url(#metal)">ZENITH</text>
+  <text x="435" y="273" font-family="Arial, Helvetica, sans-serif" font-size="58" font-weight="700" letter-spacing="18" fill="#2f8cff">CLIENT</text>
+  <rect x="435" y="302" width="610" height="2" fill="#2f8cff" opacity=".65"/>
+  <text x="435" y="342" font-family="Arial, Helvetica, sans-serif" font-size="21" letter-spacing="5" fill="#8d949d">PRECISION • PERFORMANCE • CONTROL</text>
+</svg>

@@ -17,7 +17,12 @@ public final class XrayHooks {
     public static int alpha(BlockState state, BlockPos pos) {
         ZenithConfig config = ZenithClient.getConfig();
         if (!config.xray) return -1;
-        return -1;
+        Block block = state.getBlock();
+        if (block == Blocks.AIR) return -1;
+
+        // Real renderer X-ray: selected blocks keep their normal render path;
+        // every other solid block is removed from chunk meshes.
+        return isBlocked(block) ? 0 : -1;
     }
 
     public static boolean isBlocked(Block block) {
