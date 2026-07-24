@@ -74,13 +74,10 @@ Successful JAR files are placed in `minecraft_versions/`, `releases/v<version>/`
 
 ## Latest update
 
-- Added Breach Swap with armored-target filtering, configurable restore delay, and its own keybind.
-- Breach Swap finds a Breach-enchanted mace in the hotbar, selects it for the normal attack call, and restores the previous slot afterward.
-- Added EXP Thrower with configurable delay, look-down behavior, swap-back control, offhand support, hotbar scanning, and its own keybind.
-- Added Hostile ESP, Passive ESP, Living ESP, and Storage ESP presets on top of the existing render systems.
-- Breach Swap no longer conflicts with the generic Attribute Swap when a valid Breach mace is selected.
-- Breach Swap does not alter movement packets, so Criticals and No Fall can remain enabled without changing its weapon selection.
-- Existing dynamic modded/current-world entity discovery, Freecam visibility rebuilding, X-Ray lighting, scrolling tabs, and build-version rollback remain included.
+- Fixed the Minecraft 26.2 compilation failure in Breach Swap and EXP Thrower.
+- Replaced direct access to the removed source-level `Minecraft.screen` field with a mapping-compatible screen check.
+- Breach Swap, EXP Thrower, Hostile ESP, Passive ESP, Living ESP, and Storage ESP remain included.
+- Failed builds continue restoring the previous project version automatically.
 
 ---
 

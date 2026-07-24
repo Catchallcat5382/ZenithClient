@@ -24,7 +24,7 @@ public final class ExpThrowerController {
                 || mc.player == null
                 || mc.level == null
                 || mc.gameMode == null
-                || mc.screen != null) {
+                || MinecraftScreenCompat.hasOpenScreen(mc)) {
             onDisabled();
             return;
         }

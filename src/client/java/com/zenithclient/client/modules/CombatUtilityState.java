@@ -93,7 +93,7 @@ public final class CombatUtilityState {
     }
 
     public static void handleKeybinds(Minecraft mc) {
-        if (mc.player == null || mc.level == null || mc.screen != null) {
+        if (mc.player == null || mc.level == null || MinecraftScreenCompat.hasOpenScreen(mc)) {
             breachKeyWasDown = false;
             expKeyWasDown = false;
             return;
