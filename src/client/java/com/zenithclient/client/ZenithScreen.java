@@ -1,5 +1,7 @@
 package com.zenithclient.client;
 
+import com.zenithclient.client.modules.CombatUtilityState;
+import com.zenithclient.client.modules.EspPresetState;
 import com.zenithclient.client.modules.VisualExtrasState;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
@@ -27,12 +29,14 @@ public final class ZenithScreen extends Screen {
 
     private enum Category { VISUALS, COMBAT, MOVEMENT, HUD, CONFIG }
     private enum Module {
-        PLAYER_ESP, ENTITY_OUTLINES, ITEM_ESP, PROJECTILE_ESP, BLOCK_OUTLINES,
+        PLAYER_ESP, ENTITY_OUTLINES, HOSTILE_ESP, PASSIVE_ESP, LIVING_ESP,
+        ITEM_ESP, PROJECTILE_ESP, BLOCK_OUTLINES, STORAGE_ESP,
         BOW_TRAJECTORY, XRAY, NO_BLINDNESS, NO_FIRE_OVERLAY,
         ZOOM, CLEAR_WEATHER, DAYLIGHT, NO_HURT_CAMERA, NO_PORTAL_OVERLAY,
         FLIGHT, SPEED, AUTO_SPRINT, NO_SLOW, NO_STUN, NO_FALL, AIR_JUMP, FREECAM,
-        CRITICALS, AUTO_TOTEM, ATTRIBUTE_SWAP, KILL_AURA, REACH, INFINITE_REACH,
-        MACE_KILL, FULLBRIGHT, FPS, COORDINATES
+        CRITICALS, AUTO_TOTEM, ATTRIBUTE_SWAP, BREACH_SWAP, EXP_THROWER,
+        KILL_AURA, REACH, INFINITE_REACH, MACE_KILL,
+        FULLBRIGHT, FPS, COORDINATES
     }
     private enum HitType {
         TAB, MODULE, DONE, THEME_ACCENT, PANEL_OPACITY, BUTTON_OPACITY,
@@ -391,12 +395,22 @@ public final class ZenithScreen extends Screen {
     }
 
     private void openSettings(Module m) {
+        if (minecraft != null && m == Module.BREACH_SWAP) {
+            minecraft.setScreenAndShow(CombatUtilitySettingsScreen.of(
+                    this, CombatUtilitySettingsScreen.Type.BREACH_SWAP));
+            return;
+        }
+        if (minecraft != null && m == Module.EXP_THROWER) {
+            minecraft.setScreenAndShow(CombatUtilitySettingsScreen.of(
+                    this, CombatUtilitySettingsScreen.Type.EXP_THROWER));
+            return;
+        }
         ModuleSettingsScreen.Type type = switch (m) {
             case PLAYER_ESP -> ModuleSettingsScreen.Type.PLAYER;
-            case ENTITY_OUTLINES -> ModuleSettingsScreen.Type.ENTITY;
+            case ENTITY_OUTLINES, HOSTILE_ESP, PASSIVE_ESP, LIVING_ESP -> ModuleSettingsScreen.Type.ENTITY;
             case ITEM_ESP -> ModuleSettingsScreen.Type.ITEM;
             case PROJECTILE_ESP -> ModuleSettingsScreen.Type.PROJECTILE;
-            case BLOCK_OUTLINES -> ModuleSettingsScreen.Type.BLOCKS;
+            case BLOCK_OUTLINES, STORAGE_ESP -> ModuleSettingsScreen.Type.BLOCKS;
             case BOW_TRAJECTORY -> ModuleSettingsScreen.Type.TRAJECTORY;
             case XRAY -> ModuleSettingsScreen.Type.XRAY;
             case NO_BLINDNESS -> ModuleSettingsScreen.Type.NO_BLINDNESS;
@@ -431,9 +445,21 @@ public final class ZenithScreen extends Screen {
         switch (m) {
             case PLAYER_ESP -> config.playerEsp = !config.playerEsp;
             case ENTITY_OUTLINES -> config.entityHighlights = !config.entityHighlights;
+            case HOSTILE_ESP -> EspPresetState.toggleHostile();
+            case PASSIVE_ESP -> EspPresetState.togglePassive();
+            case LIVING_ESP -> EspPresetState.toggleLiving();
             case ITEM_ESP -> config.itemEsp = !config.itemEsp;
             case PROJECTILE_ESP -> config.projectileEsp = !config.projectileEsp;
             case BLOCK_OUTLINES -> config.blockHighlights = !config.blockHighlights;
+            case STORAGE_ESP -> {
+                boolean active = config.blockHighlights
+                        && config.blockHighlightMode == ZenithConfig.BlockHighlightMode.CONTAINERS;
+                if (active) config.blockHighlights = false;
+                else {
+                    config.blockHighlightMode = ZenithConfig.BlockHighlightMode.CONTAINERS;
+                    config.blockHighlights = true;
+                }
+            }
             case BOW_TRAJECTORY -> config.trajectoryPreview = !config.trajectoryPreview;
             case XRAY -> config.xray = !config.xray;
             case NO_BLINDNESS -> config.noBlindness = !config.noBlindness;
@@ -451,6 +477,8 @@ public final class ZenithScreen extends Screen {
             case CRITICALS -> config.criticals = !config.criticals;
             case AUTO_TOTEM -> config.autoTotem = !config.autoTotem;
             case ATTRIBUTE_SWAP -> config.attributeSwap = !config.attributeSwap;
+            case BREACH_SWAP -> CombatUtilityState.toggleBreachSwap();
+            case EXP_THROWER -> CombatUtilityState.toggleExpThrower();
             case KILL_AURA -> config.killAura = !config.killAura;
             case REACH -> config.reach = !config.reach;
             case INFINITE_REACH -> config.infiniteReach = !config.infiniteReach;
@@ -471,9 +499,14 @@ public final class ZenithScreen extends Screen {
         return switch (m) {
             case PLAYER_ESP -> config.playerEsp;
             case ENTITY_OUTLINES -> config.entityHighlights;
+            case HOSTILE_ESP -> EspPresetState.hostile();
+            case PASSIVE_ESP -> EspPresetState.passive();
+            case LIVING_ESP -> EspPresetState.living();
             case ITEM_ESP -> config.itemEsp;
             case PROJECTILE_ESP -> config.projectileEsp;
             case BLOCK_OUTLINES -> config.blockHighlights;
+            case STORAGE_ESP -> config.blockHighlights
+                    && config.blockHighlightMode == ZenithConfig.BlockHighlightMode.CONTAINERS;
             case BOW_TRAJECTORY -> config.trajectoryPreview;
             case XRAY -> config.xray;
             case NO_BLINDNESS -> config.noBlindness;
@@ -491,6 +524,8 @@ public final class ZenithScreen extends Screen {
             case CRITICALS -> config.criticals;
             case AUTO_TOTEM -> config.autoTotem;
             case ATTRIBUTE_SWAP -> config.attributeSwap;
+            case BREACH_SWAP -> CombatUtilityState.breachSwapEnabled();
+            case EXP_THROWER -> CombatUtilityState.expThrowerEnabled();
             case KILL_AURA -> config.killAura;
             case REACH -> config.reach;
             case INFINITE_REACH -> config.infiniteReach;
@@ -507,13 +542,16 @@ public final class ZenithScreen extends Screen {
     private static List<Module> modules(Category c) {
         return switch (c) {
             case VISUALS -> List.of(
-                    Module.PLAYER_ESP, Module.ENTITY_OUTLINES, Module.ITEM_ESP,
-                    Module.PROJECTILE_ESP, Module.BLOCK_OUTLINES, Module.BOW_TRAJECTORY,
+                    Module.PLAYER_ESP, Module.ENTITY_OUTLINES,
+                    Module.HOSTILE_ESP, Module.PASSIVE_ESP, Module.LIVING_ESP,
+                    Module.ITEM_ESP, Module.PROJECTILE_ESP,
+                    Module.BLOCK_OUTLINES, Module.STORAGE_ESP, Module.BOW_TRAJECTORY,
                     Module.XRAY, Module.NO_BLINDNESS, Module.NO_FIRE_OVERLAY,
                     Module.ZOOM, Module.CLEAR_WEATHER, Module.DAYLIGHT,
                     Module.NO_HURT_CAMERA, Module.NO_PORTAL_OVERLAY);
             case COMBAT -> List.of(
                     Module.CRITICALS, Module.AUTO_TOTEM, Module.ATTRIBUTE_SWAP,
+                    Module.BREACH_SWAP, Module.EXP_THROWER,
                     Module.KILL_AURA, Module.REACH, Module.INFINITE_REACH, Module.MACE_KILL);
             case MOVEMENT -> List.of(
                     Module.FLIGHT, Module.SPEED, Module.AUTO_SPRINT, Module.NO_SLOW,
@@ -527,9 +565,13 @@ public final class ZenithScreen extends Screen {
         return switch (m) {
             case PLAYER_ESP -> "Player ESP";
             case ENTITY_OUTLINES -> "Entity ESP";
+            case HOSTILE_ESP -> "Hostile ESP";
+            case PASSIVE_ESP -> "Passive ESP";
+            case LIVING_ESP -> "Living ESP";
             case ITEM_ESP -> "Item ESP";
             case PROJECTILE_ESP -> "Projectile ESP";
             case BLOCK_OUTLINES -> "Block ESP";
+            case STORAGE_ESP -> "Storage ESP";
             case BOW_TRAJECTORY -> "Trajectories";
             case XRAY -> "X-Ray";
             case NO_BLINDNESS -> "No Blindness";
@@ -547,6 +589,8 @@ public final class ZenithScreen extends Screen {
             case CRITICALS -> "Criticals";
             case AUTO_TOTEM -> "Auto Totem";
             case ATTRIBUTE_SWAP -> "Attribute Swap";
+            case BREACH_SWAP -> "Breach Swap";
+            case EXP_THROWER -> "EXP Thrower";
             case KILL_AURA -> "Kill Aura";
             case REACH -> "Reach";
             case INFINITE_REACH -> "Infinite Reach";

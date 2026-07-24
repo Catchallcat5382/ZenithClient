@@ -6,6 +6,7 @@
     "LocalPlayerNoSlowMixin",
     "WebBlockNoSlowMixin",
     "CriticalsMixin",
+    "BreachSwapMixin",
     "AttributeSwapMixin",
     "AttributeSwapTickMixin",
     "ServerboundMovePlayerPacketAccessor",
@@ -21,6 +22,7 @@
     "FreecamTickMixin",
     "FreecamOcclusionMixin",
     "VisualExtrasTickMixin",
+    "CombatUtilityTickMixin",
     "ZenithClientFreecamDisableMixin",
     "ZenithClientRefreshMixin",
     "NoFireOverlayMixin"

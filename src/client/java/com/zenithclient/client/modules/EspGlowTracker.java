@@ -5,6 +5,9 @@ import com.zenithclient.client.ZenithConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
@@ -59,6 +62,12 @@ public final class EspGlowTracker {
         ZenithConfig config = ZenithClient.getConfig();
         if (entity.distanceToSqr(mc.player) > (double) config.entityRange * config.entityRange) return false;
         if (ZenithClient.isTrajectoryTarget(entity)) return true;
+
+        if (EspPresetState.hostile() && entity instanceof Monster) return true;
+        if (EspPresetState.passive() && entity instanceof Animal) return true;
+        if (EspPresetState.living()
+                && entity instanceof LivingEntity
+                && !(entity instanceof Player)) return true;
 
         boolean selectedByEntityEsp = config.entityHighlights && selected(entity, config.entitySearch);
         if (entity instanceof Player) return config.playerEsp || selectedByEntityEsp;

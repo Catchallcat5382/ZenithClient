@@ -74,11 +74,13 @@ Successful JAR files are placed in `minecraft_versions/`, `releases/v<version>/`
 
 ## Latest update
 
-- Fixed the Minecraft 26.2 compilation failure caused by the missing `VisualExtrasState` import in the Click GUI.
-- Restored access to Zoom, Clear Weather, Daylight, No Hurt Camera, and No Portal Overlay from the Visuals tab.
-- Entity selection still merges built-in, modded, saved, and current-world entity types.
-- Freecam still uses progressive loaded-chunk visibility rebuilding and detached-camera occlusion handling.
-- Failed builds continue restoring the previous project version automatically.
+- Added Breach Swap with armored-target filtering, configurable restore delay, and its own keybind.
+- Breach Swap finds a Breach-enchanted mace in the hotbar, selects it for the normal attack call, and restores the previous slot afterward.
+- Added EXP Thrower with configurable delay, look-down behavior, swap-back control, offhand support, hotbar scanning, and its own keybind.
+- Added Hostile ESP, Passive ESP, Living ESP, and Storage ESP presets on top of the existing render systems.
+- Breach Swap no longer conflicts with the generic Attribute Swap when a valid Breach mace is selected.
+- Breach Swap does not alter movement packets, so Criticals and No Fall can remain enabled without changing its weapon selection.
+- Existing dynamic modded/current-world entity discovery, Freecam visibility rebuilding, X-Ray lighting, scrolling tabs, and build-version rollback remain included.
 
 ---
 
