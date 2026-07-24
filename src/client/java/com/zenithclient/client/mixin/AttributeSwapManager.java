@@ -14,8 +14,10 @@ final class AttributeSwapManager {
     private AttributeSwapManager() { }
 
     static void beforeAttack(Player player) {
+        Minecraft mc = Minecraft.getInstance();
         ZenithConfig config = ZenithClient.getConfig();
-        if (!config.attributeSwap || player == null || player.connection == null || originalSlot >= 0) return;
+        if (!config.attributeSwap || player == null || mc.player == null
+                || mc.player.connection == null || originalSlot >= 0) return;
 
         int current = player.getInventory().getSelectedSlot();
         int wanted = Math.max(0, Math.min(8, config.attributeSwapSlot - 1));
@@ -24,7 +26,7 @@ final class AttributeSwapManager {
         originalSlot = current;
         restoreTicks = -1;
         player.getInventory().setSelectedSlot(wanted);
-        player.connection.send(new ServerboundSetCarriedItemPacket(wanted));
+        mc.player.connection.send(new ServerboundSetCarriedItemPacket(wanted));
     }
 
     static void afterAttack() {
@@ -35,6 +37,7 @@ final class AttributeSwapManager {
 
     static void tick() {
         if (originalSlot < 0) return;
+
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.player.connection == null) {
             originalSlot = -1;

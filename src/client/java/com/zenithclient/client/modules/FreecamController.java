@@ -49,7 +49,7 @@ public final class FreecamController {
 
     private static void activate(Minecraft mc) {
         active = true;
-        Vec3 camera = mc.gameRenderer.getMainCamera().position();
+        Vec3 camera = mc.player.getEyePosition();
         x = camera.x;
         y = camera.y;
         z = camera.z;
@@ -88,9 +88,10 @@ public final class FreecamController {
 
         double r = Math.toRadians(yaw);
         double wantedX = (-Math.sin(r) * forward + Math.cos(r) * strafe) * speed;
-        double wantedZ = ( Math.cos(r) * forward + Math.sin(r) * strafe) * speed;
+        double wantedZ = (Math.cos(r) * forward + Math.sin(r) * strafe) * speed;
         double wantedY = vertical * speed;
-        double easing = Math.abs(forward) + Math.abs(strafe) + Math.abs(vertical) > 0.001 ? 0.48 : 0.30;
+        double easing = Math.abs(forward) + Math.abs(strafe) + Math.abs(vertical) > 0.001
+                ? 0.48 : 0.30;
 
         velocityX += (wantedX - velocityX) * easing;
         velocityY += (wantedY - velocityY) * easing;

@@ -74,11 +74,12 @@ Successful JAR files are placed in `minecraft_versions/`, `releases/v<version>/`
 
 ## Latest update
 
+- Fixed the Minecraft 26.2 Attribute Swap connection mapping.
+- Fixed the Minecraft 26.2 renderer refresh mapping without hard-linking a removed method.
+- Fixed Freecam startup on Minecraft 26.2 by using the player eye position as the initial camera position.
+- Kept failed-build version rollback so unsuccessful builds do not advance the project version.
 - Added searchable multi-select entity and block target lists.
-- Updated the Click GUI and expanding ZenithClient logo banner.
-- Stabilized X-Ray renderer hooks, ESP glow handling, Attribute Swap, Freecam state, and Criticals packet limits.
-- Fixed failed builds incorrectly leaving the project on the attempted version.
-- Failed builds now print the useful end of the Gradle log directly in the build window.
+- Stabilized X-Ray renderer hooks, ESP glow handling, Attribute Swap, Freecam state, and bounded Criticals behavior.
 
 ---
 
