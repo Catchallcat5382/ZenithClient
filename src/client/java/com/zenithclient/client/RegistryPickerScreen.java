@@ -51,73 +51,78 @@ public final class RegistryPickerScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float tickDelta) {
-        int panelW = Math.min(650, width - 28);
-        int panelH = Math.min(470, height - 24);
-        int left = (width - panelW) / 2;
-        int top = (height - panelH) / 2;
+        int margin = width < 620 || height < 390 ? 7 : 14;
+        int panelW = Math.max(1, Math.min(680, width - margin * 2));
+        int panelH = Math.max(1, Math.min(480, height - margin * 2));
+        int left = Math.max(0, (width - panelW) / 2);
+        int top = Math.max(0, (height - panelH) / 2);
         int accent = 0xFFFF5A1F;
         rows.clear();
 
         g.fill(0, 0, width, height, 0xB0060708);
-        g.fill(left - 7, top - 7, left + panelW + 7, top + panelH + 7, 0x52000000);
         g.fill(left, top, left + panelW, top + panelH, 0xF5090A0C);
         frame(g, left, top, panelW, panelH, accent);
-        g.fill(left + 1, top + 1, left + panelW - 1, top + 66, 0xFF0E1013);
-        g.fill(left + 18, top + 60, left + 138, top + 62, accent);
+        g.fill(left + 1, top + 1, left + panelW - 1, top + 68, 0xFF0E1013);
+        g.fill(left + 18, top + 61, left + Math.min(panelW - 18, 158), top + 63, accent);
 
         g.text(font, titleText().toUpperCase(Locale.ROOT), left + 18, top + 14, 0xFFFFFFFF, true);
-        String countText = selected.size() + " / " + entries.size() + " SELECTED";
-        g.text(font, countText, left + panelW - font.width(countText) - 18, top + 14, accent, true);
+        String countText = selected.size() + " SELECTED / " + entries.size() + " LOADED";
+        int countX = Math.max(left + 18, left + panelW - font.width(countText) - 18);
+        g.text(font, countText, countX, top + 14, accent, true);
 
         int searchX = left + 18;
-        int searchY = top + 35;
+        int searchY = top + 36;
         int searchW = panelW - 36;
         g.fill(searchX, searchY, searchX + searchW, searchY + 20, 0xFF15181D);
         frame(g, searchX, searchY, searchW, 20, search.isEmpty() ? 0xFF343941 : accent);
         String noun = (mode == Mode.ENTITY_ESP || mode == Mode.KILL_AURA) ? "entities" : "blocks";
-        String shownSearch = search.isEmpty() ? "Search all loaded " + noun + "..." : search + "_";
-        g.text(font, shownSearch, searchX + 8, searchY + 7,
+        String shownSearch = search.isEmpty() ? "Search every loaded " + noun + "..." : search + "_";
+        g.text(font, fit(shownSearch, searchW - 16), searchX + 8, searchY + 7,
                 search.isEmpty() ? 0xFF737A84 : 0xFFFFFFFF, false);
 
-        int contentTop = top + 74;
+        int contentTop = top + 76;
         int contentBottom = top + panelH - 48;
         int rowX = left + 18;
         int rowW = panelW - 45;
         List<String> filtered = filtered();
         int rowHeight = 25;
+        int viewportH = Math.max(1, contentBottom - contentTop);
         int totalHeight = filtered.size() * rowHeight;
-        maxScroll = Math.max(0, totalHeight - (contentBottom - contentTop));
+        maxScroll = Math.max(0, totalHeight - viewportH);
         scroll = Math.max(0, Math.min(maxScroll, scroll));
 
         g.enableScissor(rowX, contentTop, rowX + rowW, contentBottom);
-        int y = contentTop - scroll;
-        for (String id : filtered) {
-            if (y + 22 >= contentTop && y < contentBottom) {
-                drawEntry(g, mouseX, mouseY, id, rowX, y, rowW, accent);
-            }
+        int first = Math.max(0, scroll / rowHeight);
+        int y = contentTop - (scroll % rowHeight);
+        for (int i = first; i < filtered.size() && y < contentBottom; i++) {
+            drawEntry(g, mouseX, mouseY, filtered.get(i), rowX, y, rowW, accent);
             y += rowHeight;
         }
         if (filtered.isEmpty()) {
-            g.text(font, "No registry entries match the current search.", rowX + 8,
+            g.text(font, "No loaded registry entries match the search.", rowX + 8,
                     contentTop + 12, 0xFFFFC15A, false);
         }
         g.disableScissor();
 
         if (maxScroll > 0) {
             int trackX = left + panelW - 18;
-            int trackH = contentBottom - contentTop;
-            int thumbH = Math.max(28, trackH * trackH / Math.max(trackH, totalHeight));
-            int thumbY = contentTop + (trackH - thumbH) * scroll / maxScroll;
+            int thumbH = Math.max(28, viewportH * viewportH / Math.max(viewportH, totalHeight));
+            int thumbY = contentTop + (viewportH - thumbH) * scroll / maxScroll;
             g.fill(trackX, contentTop, trackX + 3, contentBottom, 0xFF25292F);
             g.fill(trackX, thumbY, trackX + 3, thumbY + thumbH, accent);
         }
 
         int buttonY = top + panelH - 34;
-        drawButton(g, mouseX, mouseY, Action.CLEAR, left + 18, buttonY, 84, 21, "CLEAR", accent);
-        drawButton(g, mouseX, mouseY, Action.SELECT_VISIBLE, left + 110, buttonY, 132, 21,
-                "SELECT SEARCH", accent);
-        drawButton(g, mouseX, mouseY, Action.DONE, left + panelW - 96, buttonY, 78, 21,
-                "DONE", accent);
+        int usable = panelW - 36;
+        int clearW = Math.min(84, Math.max(60, usable / 5));
+        int doneW = Math.min(78, Math.max(62, usable / 5));
+        int selectW = Math.max(100, usable - clearW - doneW - 16);
+        drawButton(g, mouseX, mouseY, Action.CLEAR, left + 18, buttonY,
+                clearW, 21, "CLEAR", accent);
+        drawButton(g, mouseX, mouseY, Action.SELECT_VISIBLE, left + 26 + clearW,
+                buttonY, selectW, 21, "SELECT SEARCH", accent);
+        drawButton(g, mouseX, mouseY, Action.DONE, left + panelW - 18 - doneW,
+                buttonY, doneW, 21, "DONE", accent);
 
         super.extractRenderState(g, mouseX, mouseY, tickDelta);
     }
@@ -139,8 +144,17 @@ public final class RegistryPickerScreen extends Screen {
             g.fill(boxX + 5, boxY + 7, boxX + 9, boxY + 9, 0xFFFFFFFF);
         }
 
-        String display = id.startsWith("minecraft:") ? id.substring("minecraft:".length()) : id;
-        g.text(font, display, x + 27, y + 7, checked || hover ? 0xFFFFFFFF : 0xFFB9BDC3, false);
+        String path = id.contains(":") ? id.substring(id.indexOf(':') + 1) : id;
+        String badge = badge(path);
+        int badgeX = x + 25;
+        int badgeColor = 0xFF000000 | (id.hashCode() & 0x005F5F5F) | 0x00303030;
+        g.fill(badgeX, y + 3, badgeX + 18, y + 19, badgeColor);
+        frame(g, badgeX, y + 3, 18, 16, checked ? accent : 0xFF626873);
+        g.text(font, badge, badgeX + (18 - font.width(badge)) / 2, y + 7, 0xFFFFFFFF, true);
+
+        String display = fit(id, Math.max(20, w - 53));
+        g.text(font, display, x + 49, y + 7,
+                checked || hover ? 0xFFFFFFFF : 0xFFB9BDC3, false);
         rows.add(new Row(Action.ENTRY, id, x, y, w, 22));
     }
 
@@ -277,6 +291,27 @@ public final class RegistryPickerScreen extends Screen {
         }
         values.sort(Comparator.naturalOrder());
         return values;
+    }
+
+    private static String badge(String path) {
+        String cleaned = path.replace('_', ' ').trim();
+        if (cleaned.isEmpty()) return "?";
+        String[] words = cleaned.split("\\s+");
+        if (words.length >= 2) {
+            return ("" + Character.toUpperCase(words[0].charAt(0))
+                    + Character.toUpperCase(words[1].charAt(0)));
+        }
+        return cleaned.substring(0, Math.min(2, cleaned.length())).toUpperCase(Locale.ROOT);
+    }
+
+    private String fit(String text, int maxWidth) {
+        if (font.width(text) <= maxWidth) return text;
+        String suffix = "...";
+        String clipped = text;
+        while (!clipped.isEmpty() && font.width(clipped) + font.width(suffix) > maxWidth) {
+            clipped = clipped.substring(0, clipped.length() - 1);
+        }
+        return clipped.isEmpty() ? suffix : clipped + suffix;
     }
 
     private static void frame(GuiGraphicsExtractor g, int x, int y, int w, int h, int color) {

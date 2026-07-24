@@ -24,7 +24,7 @@ public abstract class CameraFreecamMixin {
         detached = true;
         float partialTick = deltaTracker.getGameTimeDeltaPartialTick(true);
         setPosition(FreecamController.position(partialTick));
-        setRotation(FreecamController.yaw(), FreecamController.pitch());
+        setRotation(FreecamController.yaw(partialTick), FreecamController.pitch(partialTick));
     }
 
     @Inject(method = "getFluidInCamera", at = @At("HEAD"), cancellable = true, require = 0)

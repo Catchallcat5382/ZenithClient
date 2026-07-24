@@ -14,7 +14,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Tracks entities whose glowing result was overridden by ZenithClient. */
+/** Tracks every entity whose glow result was ever controlled in the current world. */
 public final class EspGlowTracker {
     private static final Set<UUID> CONTROLLED = ConcurrentHashMap.newKeySet();
     private static Object lastLevel;
@@ -35,9 +35,10 @@ public final class EspGlowTracker {
             return true;
         }
 
-        // Explicitly clear only outlines that ZenithClient previously owned.
-        // Vanilla/team glowing for unrelated entities remains untouched.
-        if (CONTROLLED.remove(id)) return false;
+        // Do not remove the UUID after one query. Minecraft asks the glow state
+        // multiple times per frame, which previously allowed a second query to
+        // fall back to a white vanilla outline. The set is cleared on world change.
+        if (CONTROLLED.contains(id)) return false;
         return vanillaGlow;
     }
 
@@ -68,11 +69,13 @@ public final class EspGlowTracker {
 
     private static boolean selected(Entity entity, String raw) {
         if (raw == null || raw.isBlank()) return false;
-        String id = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString().toLowerCase(Locale.ROOT);
+        String id = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType())
+                .toString().toLowerCase(Locale.ROOT);
         for (String token : raw.split(",")) {
             String wanted = token.trim().toLowerCase(Locale.ROOT);
             if (wanted.isEmpty()) continue;
-            if (id.equals(wanted) || id.endsWith(":" + wanted) || id.contains(wanted)) return true;
+            if (id.equals(wanted)) return true;
+            if (!wanted.contains(":") && id.endsWith(":" + wanted)) return true;
         }
         return false;
     }

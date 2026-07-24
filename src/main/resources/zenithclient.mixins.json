@@ -13,11 +13,13 @@
     "EntityGlowMixin",
     "EntitySelectionMixin",
     "ModelBlockRendererMixin",
+    "XrayLightingMixin",
     "SodiumBlockRendererMixin",
     "SodiumBlockRenderContextMixin",
     "ChatCommandMixin",
     "CameraFreecamMixin",
     "FreecamTickMixin",
+    "ZenithClientFreecamDisableMixin",
     "ZenithClientRefreshMixin",
     "NoFireOverlayMixin"
   ],

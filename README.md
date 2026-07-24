@@ -74,17 +74,18 @@ Successful JAR files are placed in `minecraft_versions/`, `releases/v<version>/`
 
 ## Latest update
 
-- Reworked X-Ray so selected blocks generate every face instead of only faces that were already exposed.
-- Added optional Sodium and Iris-compatible X-Ray hooks without requiring Sodium to compile the project.
-- Fixed stale white ESP outlines by tracking only entities that ZenithClient actually controlled and clearing them when they leave range or the module is disabled.
-- Empty Entity ESP target lists now mean no entities selected instead of silently falling back to all entities.
-- Expanded the registry picker to show the full loaded entity registry with searchable multi-selection and clear selection counts.
-- Reworked Freecam input so the real player remains anchored while the camera moves and rotates independently.
-- Raised the bounded Mace Kill simulated fall setting to 4.0–6.0 blocks.
-- Kept the logo hover animation at a fixed height so it unfolds only to the right.
-- Added compact layout sizing so the top and bottom of the Click GUI remain inside smaller game windows.
-- Added extra safe padding to the Mod Menu icon so it is not cropped or squeezed.
-- Kept failed-build version rollback and the Attribute Swap startup-crash fix.
+- Added X-Ray-only ore lighting so selected blocks render at maximum light even in enclosed caves.
+- Replaced the unreliable Sodium face-state reflection with direct renderer state hooks and full-bright quad lighting.
+- Kept every face of selected X-Ray blocks visible while hidden blocks remain removed from chunk meshes.
+- Reworked Freecam movement so key states are no longer destroyed, left/right directions are correct, the camera moves smoothly, and the real player remains anchored.
+- Disabled the older duplicate Freecam loop that was fighting the detached camera controller.
+- Prevented Freecam movement packets from moving the real player while the detached camera is active.
+- Made ESP cleanup persistent for the current world so former targets cannot turn into permanent white outlines after leaving range or disabling ESP.
+- Rebuilt the main Click GUI with fixed-size cards and scrolling instead of shrinking buttons until text is cut off.
+- Reworked the compact Z mark to match the banner and kept the hover animation at a fixed height while it reveals only to the right.
+- The entity selector now virtualizes the complete loaded entity registry, shows the total count, supports every registered namespace, and has no artificial entry limit.
+- Updated the Mod Menu icon with additional padding and a closed right edge so the mark is no longer cropped or squeezed.
+- Failed builds still restore the previous project version automatically.
 
 ---
 
